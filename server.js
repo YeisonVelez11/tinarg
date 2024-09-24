@@ -138,33 +138,34 @@ async function waitFor(ms) {
 }
 async function captureScreenshotAndUpload(folderId, auth, banner1Url, bannerLateralUrl) {
     const browser = await puppeteer.launch({ 
+        headless:false,
         args: [
             "--disable-setuid-sandbox",
             "--no-sandbox",
             "--single-process",
             "--no-zygote",
           ],
-          executablePath:
-            process.env.NODE_ENV === "production"
-              ? process.env.PUPPETEER_EXECUTABLE_PATH
-              : puppeteer.executablePath(),
+          executablePath: puppeteer.executablePath(),
     });
     const page = await browser.newPage();
     page.on('console', msg => console.log('PAGE LOG:', msg.text()));
 
     try {
+        console.log("aqui");
         await page.goto('https://revistaforum.com.br/', { waitUntil: 'load', timeout: 60000 });
-
+        console.log("sigue");
         const currentHref = await page.evaluate(() => {
             const element = document.querySelector('.z-foto a');
             return element ? element.href : null;
         });
-
-        await saveCurrentHref(currentHref);
+        console.log(currentHref);
+        //await saveCurrentHref(currentHref);
+        console.log("vamos 11");
 
         await page.goto(currentHref, { waitUntil: 'load', timeout: 60000 });
         await page.setViewport({ width: 1592, height: 900 });
-        await waitFor(1000);
+        await waitFor(60000);
+        console.log("vamos 133");
 
         await page.evaluate(() => {
             const adds = document.querySelectorAll(".content-banner.hidden-m");
@@ -177,8 +178,10 @@ async function captureScreenshotAndUpload(folderId, auth, banner1Url, bannerLate
         console.log("vamos 2");
 
         const finalImageBuffer = await processImage(screenshotBuffer, currentHref, banner1Url, bannerLateralUrl); // Aquí pasamos las URLs
+        console.log("vamos 4341");
 
         const dateDetails = formatDateFromHref(currentHref); // Obtén las partes de la fecha
+        console.log("vamos 1445");
 
         if (dateDetails) {
             const day = dateDetails.day;
@@ -186,8 +189,12 @@ async function captureScreenshotAndUpload(folderId, auth, banner1Url, bannerLate
             const year = dateDetails.year;
 
             // Crear el nombre del archivo
+            console.log("vamos 1232");
+
             const finalFileName = `${day}_${monthNum}_${year}.png`;
             await uploadBufferToDrive(auth, folderId, finalFileName, finalImageBuffer, 'image/png');
+            console.log("vamos 321");
+
             console.log(`Imagen final guardada en Google Drive con el nombre ${finalFileName}`);
         } else {
             console.error('No se pudo extraer la fecha del HREF:', currentHref);
