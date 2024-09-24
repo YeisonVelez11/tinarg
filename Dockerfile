@@ -12,7 +12,6 @@ ENV PUPPETEER_SKIP_CHROMIUM_DOWNLOAD=true \
 WORKDIR /usr/src/app
 
 COPY package*.json ./
-RUN npm ci
 COPY . .
 
 # Start xvfb and run the application
