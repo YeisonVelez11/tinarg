@@ -138,14 +138,16 @@ async function waitFor(ms) {
 }
 async function captureScreenshotAndUpload(folderId, auth, banner1Url, bannerLateralUrl) {
     const browser = await puppeteer.launch({ 
-        headless:false,
-        args: [
+        headless:true,
+          args: [
             "--disable-setuid-sandbox",
             "--no-sandbox",
             "--single-process",
             "--no-zygote",
           ],
-          executablePath: puppeteer.executablePath(),
+          executablePath: process.env.NODE_ENV === "production"
+          ? process.env.PUPPETEER_EXECUTABLE_PATH
+          : puppeteer.executablePath(),
     });
     const page = await browser.newPage();
     page.on('console', msg => console.log('PAGE LOG:', msg.text()));
@@ -161,8 +163,11 @@ async function captureScreenshotAndUpload(folderId, auth, banner1Url, bannerLate
         console.log(currentHref);
         //await saveCurrentHref(currentHref);
         console.log("vamos 11");
-
-        await page.goto(currentHref, { waitUntil: 'load', timeout: 60000 });
+        try {
+            await page.goto(currentHref, { waitUntil: 'load', timeout: 60000 });
+        } catch (error) {
+            console.error("Error navegando a la URL:", error);
+        }
         await page.setViewport({ width: 1592, height: 900 });
         await waitFor(60000);
         console.log("vamos 133");
