@@ -139,20 +139,20 @@ async function waitFor(ms) {
 }
 async function captureScreenshotAndUpload(folderId, auth, banner1Url, bannerLateralUrl) {
 
-    const executablePath = await new Promise(resolve => locateChrome(arg => resolve(arg)));
-    console.log(executablePath);
-    const browser = await puppeteer.launch({ 
-        headless:true,
-          args: [
-            "--disable-setuid-sandbox",
-            "--no-sandbox",
-            "--single-process",
-            "--no-zygote",
-          ],
-          executablePath: process.env.NODE_ENV === "production"
-          ? executablePath()
-          : puppeteer.executablePath(),
-    });
+
+    const browser = await puppeteer.launch({
+        args: [
+          "--disable-setuid-sandbox",
+          "--no-sandbox",
+          "--single-process",
+          "--no-zygote",
+        ],
+        headless: "new",
+        executablePath:
+          process.env.NODE_ENV === "production"
+            ? process.env.PUPPETEER_EXECUTABLE_PATH
+            : puppeteer.executablePath(),
+      });
     const page = await browser.newPage();
     page.on('console', msg => console.log('PAGE LOG:', msg.text()));
 
