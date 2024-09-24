@@ -4,6 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
+    "install": "npx puppeteer install",
     "start": "node server.js"
   },
   "author": "",

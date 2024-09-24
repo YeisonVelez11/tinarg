@@ -137,7 +137,10 @@ async function waitFor(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 async function captureScreenshotAndUpload(folderId, auth, banner1Url, bannerLateralUrl) {
-    const browser = await puppeteer.launch({ headless: true });
+    const browser = await puppeteer.launch({ 
+        headless: true,
+        args: ['--no-sandbox', '--disable-setuid-sandbox'] // Agregar estas opciones
+    });
     const page = await browser.newPage();
     page.on('console', msg => console.log('PAGE LOG:', msg.text()));
 
