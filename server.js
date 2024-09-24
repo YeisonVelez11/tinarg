@@ -147,7 +147,7 @@ async function captureScreenshotAndUpload(folderId, auth, banner1Url, bannerLate
           "--single-process",
           "--no-zygote",
         ],
-        headless: "new",
+        headless: "true",
         executablePath:
           process.env.NODE_ENV === "production"
             ? process.env.PUPPETEER_EXECUTABLE_PATH
@@ -158,7 +158,7 @@ async function captureScreenshotAndUpload(folderId, auth, banner1Url, bannerLate
 
     try {
         console.log("aqui");
-        await page.goto('https://revistaforum.com.br/', { waitUntil: 'load', timeout: 60000 });
+        await page.goto('https://revistaforum.com.br/', { waitUntil: ['domcontentloaded', 'networkidle2'], timeout: 60000 });
         console.log("sigue");
         const currentHref = await page.evaluate(() => {
             const element = document.querySelector('.z-foto a');
@@ -168,7 +168,7 @@ async function captureScreenshotAndUpload(folderId, auth, banner1Url, bannerLate
         //await saveCurrentHref(currentHref);
         console.log("vamos 11");
         try {
-            await page.goto(currentHref, { waitUntil: 'load', timeout: 60000 });
+            await page.goto(currentHref, { waitUntil: ['domcontentloaded', 'networkidle2'], timeout: 60000 });
         } catch (error) {
             console.error("Error navegando a la URL:", error);
         }
