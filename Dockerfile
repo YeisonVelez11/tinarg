@@ -2,9 +2,6 @@ FROM ghcr.io/puppeteer/puppeteer:19.7.2
 
 USER root
 
-RUN apt-get update && \
-    apt-get install -y xvfb
-
 USER node
 
 ENV DISPLAY=:99
