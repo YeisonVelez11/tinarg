@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <link rel="stylesheet" href="/styles.css">
+    <!-- Incluyendo CSS de daterangepicker -->
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.css">
+    <title>Subir Imágenes</title>
+</head>
+<body>
+    <h1>Subir Imágenes</h1>
+
+    <% if (message) { %>
+    <div id="successMessage" style="color: green;">
+        <%= message %>
+    </div>
+    <% } %>
+
+    <h2>Datos del Día Actual</h2>
+    <div id="currentJsonData">
+
+    </div>
+
+    <form action="/upload" method="POST" enctype="multipart/form-data" id="uploadForm">
+        <input type="hidden" name="folderId" id="folderId" value="<%= currentFolderId %>">
+        <input type="hidden" name="folderName" id="folderName" value="<%= currentFolderName %>">
+
+        <!-- Daterange Picker -->
+        <div>
+            <label for="daterange">Selecciona un Rango de Fechas:</label>
+            <input type="text" name="daterange" id="daterange" />
+            <div id="selectedDateRange" style="margin-top: 10px;"></div> <!-- Label que mostrará el rango seleccionado -->
+        </div>
+
+        <div>
+            <label for="banner1">Imagen Banner 1:</label>
+            <input type="file" name="banner1" id="banner1" accept="image/*" onchange="previewImage(event, 'prev-banner1')">
+            <img id="prev-banner1" src="" alt="Preview Banner 1" style="display: block;">
+        </div>
+        <div>
+            <label for="banner_lateral">Imagen Banner Lateral:</label>
+            <input type="file" name="banner_lateral" id="banner_lateral" accept="image/*" onchange="previewImage(event, 'prev-banner-lateral')">
+            <img id="prev-banner-lateral" src="" alt="Preview Banner Lateral" style="display: block;">
+        </div>
+
+        <h2>Carpetas</h2>
+        <div id="currentFolderLabel">Carpeta Actual: <strong><%= currentFolderName %></strong></div>
+        <div id="currentFolderId">ID de Carpeta: <strong><%= currentFolderId %></strong></div>
+
+        <ul id="folderList">
+            <% folders.forEach(folder => { %>
+                <% if (folder.name !== 'banners' && folder.name !== 'jsones') { %>
+                <li>
+                    <a href="#" class="folder" data-id="<%= folder.id %>" data-name="<%= folder.name %>"><%= folder.name %></a>
+                </li>
+                <% } %>
+            <% }) %>
+        </ul>
+
+        <div id="subFolderList"></div>
+        <div id="noSubFoldersMessage" style="display: none; color: red;">No hay más carpetas en esta ubicación.</div>
+
+
+
+        <button type="submit" id="submitButton">Subir Imágenes</button>
+        <div id="loader" style="display: none;">Cargando...</div> <!-- Loader -->
+    </form>
+
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.6.0/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/momentjs/latest/moment.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
+
+    <script>
+        function previewImage(event, previewId) {
+            const file = event.target.files[0];
+            const reader = new FileReader();
+
+            reader.onload = function (e) {
+                document.getElementById(previewId).src = e.target.result;
+            };
+
+            if (file) {
+                reader.readAsDataURL(file);
+            }
+        }
+
+        function loadJsonData(dateRange) {
+            const loader = document.getElementById('loader');
+            loader.style.display = 'block'; // Muestra el loader
+
+            // Realizar la solicitud al servidor para cargar el JSON
+            fetch('/json-by-dates', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ dateRange })
+            })
+            .then(response => {
+                if (!response.ok) {
+                    return response.json().then(err => {
+                        throw new Error(err.error || 'Ocurrió un error en la solicitud.');
+                    });
+                }
+                return response.json();
+            })
+            .then(jsonData => {
+                const jsonDataContainer = document.getElementById('currentJsonData');
+                jsonDataContainer.innerHTML = ''; // Limpiar el contenedor previo
+
+                // Agrupar datos por fecha
+                const groupedData = {};
+
+                jsonData.forEach(item => {
+                    const dateKey = item.fecha; // Usar fecha como clave
+                    if (!groupedData[dateKey]) {
+                        groupedData[dateKey] = [];
+                    }
+                    groupedData[dateKey].push(item);
+                });
+
+                // Crear elementos para cada grupo de fecha
+                // En la función loadJsonData
+
+                // Crear elementos para cada grupo de fecha
+                for (const date in groupedData) {
+                    console.log(date);
+                    const dateDiv = document.createElement('div');
+                    const dateTitle = document.createElement('h3');
+                    dateTitle.textContent = date; // Agregar título de fecha
+                    dateDiv.appendChild(dateTitle);
+
+                    const ul = document.createElement('ul');
+                    groupedData[date].forEach(item => {
+                        console.log(item);
+                        const li = document.createElement('li');
+                        li.innerHTML = `
+                            <strong>Banner:</strong>
+                            <a href="${item.banner}" target="_blank">
+                                <img src="${item.banner}" alt="Banner">
+                            </a><br>
+                            <strong>Banner Lateral:</strong>
+                            <a href="${item.banner_lateral}" target="_blank">
+                                <img src="${item.banner_lateral}" alt="Banner Lateral">
+                            </a>
+                            <button onclick="deleteJsonItem('${date}', '${item.id}')" style="margin-left: 10px;">Eliminar</button>
+                        `;
+                        ul.appendChild(li);
+                    });
+                    dateDiv.appendChild(ul);
+                    jsonDataContainer.appendChild(dateDiv); // Agregar al contenedor principal
+                }
+
+                loader.style.display = 'none'; // Ocultar el loader
+            })
+            .catch(error => {
+                console.error('Error fetching JSON data:', error);
+                alert(error.message); // Muestra el error en una alerta al usuario
+                loader.style.display = 'none'; // Oculta el loader en caso de error
+            });
+        }
+
+        // Inicializar el daterange picker con la fecha actual
+        $(function() {
+            $('#daterange').daterangepicker({
+                opens: 'left',
+                startDate: moment().startOf('day'), // Fecha actual
+                endDate: moment().startOf('day'), // Fecha actual
+                locale: {
+                    format: 'MM/DD/YYYY' // Formato de fecha
+                }
+            }, function(start, end, label) {
+                const dateRangeText = `Desde: ${start.format('MM/DD/YYYY')} Hasta: ${end.format('MM/DD/YYYY')}`;
+                $('#selectedDateRange').html(dateRangeText); // Mostrar el rango de fechas seleccionado
+
+                // Cargar datos según el rango de fechas seleccionado
+                const dateRange = `${start.format('MM/DD/YYYY')} - ${end.format('MM/DD/YYYY')}`;
+                loadJsonData(dateRange);
+            });
+
+            // Cargar datos iniciales para la fecha actual
+            const today = moment();
+            const initialDateRange = `${today.format('MM/DD/YYYY')} - ${today.format('MM/DD/YYYY')}`;
+            loadJsonData(initialDateRange);
+        });
+
+        document.getElementById('uploadForm').onsubmit = function() {
+            // Mostrar el loader
+            document.getElementById('loader').style.display = 'block';
+            document.getElementById('submitButton').disabled = true; // Deshabilitar el botón de envío
+        };
+
+        function loadSubFolders(folderId, folderName) {
+            document.getElementById('currentFolderLabel').innerHTML = `Carpeta Actual: <strong>${folderName}</strong>`;
+            document.getElementById('currentFolderId').innerHTML = `ID de Carpeta: <strong>${folderId}</strong>`;
+            document.getElementById('folderId').value = folderId; // Actualiza el campo oculto
+            document.getElementById('folderName').value = folderName; // Actualiza el campo oculto del nombre
+
+            fetch(`/folders/${folderId}`)
+            .then(response => {
+                if (!response.ok) throw new Error('Network response was not ok.');
+                return response.json();
+            })
+            .then(subFolders => {
+                const subFolderList = document.getElementById('subFolderList');
+                const noSubFoldersMessage = document.getElementById('noSubFoldersMessage');
+
+                subFolderList.innerHTML = ''; // Limpia el contenido previo
+                noSubFoldersMessage.style.display = 'none'; // Ocultar mensaje
+
+                if (subFolders.length === 0) {
+                    noSubFoldersMessage.style.display = 'block'; // Muestra el mensaje si no hay subcarpetas
+                } else {
+                    const ul = document.createElement('ul');
+                    subFolders.forEach(subFolder => {
+                        const li = document.createElement('li');
+                        li.innerHTML = `<a href="#" class="folder" data-id="${subFolder.id}" data-name="${subFolder.name}">${subFolder.name}</a>`;
+                        ul.appendChild(li);
+                    });
+                    subFolderList.appendChild(ul);
+                }
+            })
+            .catch(error => {
+                console.error('Error fetching subfolders:', error);
+            });
+        }
+
+        // Evento para manejar el clic en las carpetas principales
+        document.getElementById('folderList').addEventListener('click', function(event) {
+            if (event.target.classList.contains('folder')) {
+                event.preventDefault(); // Evita el comportamiento por defecto
+                const folderId = event.target.getAttribute('data-id');
+                const folderName = event.target.getAttribute('data-name');
+
+                loadSubFolders(folderId, folderName);
+            }
+        });
+
+        // Evento para manejar el clic en las subcarpetas
+        document.getElementById('subFolderList').addEventListener('click', function(event) {
+            if (event.target.classList.contains('folder')) {
+                event.preventDefault(); // Evita el comportamiento por defecto
+                const folderId = event.target.getAttribute('data-id');
+                const folderName = event.target.getAttribute('data-name');
+
+                loadSubFolders(folderId, folderName);
+            }
+        });
+
+
+        function deleteJsonItem(fecha, itemId) {
+            const loader = document.getElementById('loader');
+            loader.style.display = 'block'; // Muestra el loader
+
+            // Confirmar con el usuario
+            if (confirm(`¿Estás seguro de que deseas eliminar el ítem para la fecha ${fecha}?`)) {
+                fetch(`/delete-json-item`, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ fecha, itemId }) // Enviar la fecha y el ID del ítem a eliminar
+                })
+                .then(response => {
+                    if (!response.ok) {
+                        return response.json().then(err => {
+                            throw new Error(err.error || 'Ocurrió un error al eliminar el archivo.');
+                        });
+                    }
+                    return response.json();
+                })
+                .then(data => {
+                    alert(data.message); // Mostrar mensaje de éxito
+
+                    const today = moment();
+                    const newDateRange = `${today.format('MM/DD/YYYY')} - ${today.format('MM/DD/YYYY')}`;
+                    loadJsonData(newDateRange); // Vuelve a cargar los datos actualizados
+                    loader.style.display = 'none'; // Oculta el loader
+                })
+                .catch(error => {
+                    console.error('Error deleting JSON item:', error);
+                    alert(error.message); // Muestra el error en una alerta al usuario
+                    loader.style.display = 'none'; // Oculta el loader en caso de error
+                });
+            } else {
+                loader.style.display = 'none'; // Oculta el loader si el usuario cancela
+            }
+        }
+
+
+    </script>
+</body>
+</html>

@@ -1,0 +1,35 @@
+body {
+    font-family: Arial, sans-serif;
+    margin: 20px;
+}
+
+div {
+    margin-bottom: 15px;
+}
+
+img {
+    margin-top: 10px;
+}
+
+#loader {
+    position: fixed;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+    font-size: 20px;
+    color: blue;
+    display: none; /* ocultar por defecto */
+    z-index: 1000; /* asegúrate de que esté por encima de otros elementos */
+}
+h3 {
+    margin-top: 20px;
+    color: darkblue;
+}
+
+ul {
+    list-style-type: none; /* Opcional: elimina los puntos de la lista */
+}
+
+li {
+    margin-bottom: 10px; /* Espaciado entre los elementos de la lista */
+}
