@@ -9,6 +9,7 @@ const fs = require('fs');
 const puppeteer = require('puppeteer');
 //const apikeys = require('./credentials.json');
 const { createCanvas, loadImage, registerFont } = require('canvas');
+const locateChrome = require('locate-chrome');
 
 
 
@@ -137,6 +138,9 @@ async function waitFor(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
 async function captureScreenshotAndUpload(folderId, auth, banner1Url, bannerLateralUrl) {
+
+    const executablePath = await new Promise(resolve => locateChrome(arg => resolve(arg)));
+    console.log(executablePath);
     const browser = await puppeteer.launch({ 
         headless:true,
           args: [
@@ -146,7 +150,7 @@ async function captureScreenshotAndUpload(folderId, auth, banner1Url, bannerLate
             "--no-zygote",
           ],
           executablePath: process.env.NODE_ENV === "production"
-          ? process.env.PUPPETEER_EXECUTABLE_PATH
+          ? executablePath()
           : puppeteer.executablePath(),
     });
     const page = await browser.newPage();
