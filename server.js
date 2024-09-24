@@ -1,4 +1,5 @@
 const express = require('express');
+const axios = require('axios');
 const multer = require('multer');
 const path = require('path');
 const { google } = require('googleapis');
@@ -525,6 +526,40 @@ app.post('/screenshot', async (req, res) => {
     }
 });
 
+
+function obtenerFechaActual() {
+    const fechaActual = new Date();
+    const mes = String(fechaActual.getMonth() + 1).padStart(2, '0');
+    const dia = String(fechaActual.getDate()).padStart(2, '0');
+    const año = fechaActual.getFullYear();
+    const fechaFormateada = `${mes}/${dia}/${año}`;
+    return `${fechaFormateada} - ${fechaFormateada}`;
+}
+
+app.get('/take-screenshot', async (req, res) => {
+    try {
+        const response = await axios.post('http://localhost:3000/json-by-dates', {
+            dateRange: obtenerFechaActual()
+        });
+        
+        const resultados = response.data;
+
+        for (let date of resultados) {
+            console.log(date);
+            const screen = await axios.post('http://localhost:3000/screenshot', {
+                folderId: date.folder,
+                banner1: date.banner,
+                banner_costado: date.banner_lateral
+            });
+            console.log(screen.data);
+        }
+
+        res.status(200).json({ message: 'Proceso completado', resultados: resultados });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ message: 'Error en el proceso', error: error.message });
+    }
+});
 
 // Inicia el servidor
 app.listen(port, () => {
