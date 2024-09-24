@@ -6,7 +6,7 @@ const streamifier = require('streamifier');
 const moment = require('moment');
 const fs = require('fs');
 const puppeteer = require('puppeteer');
-const apikeys = require('./credentials.json');
+//const apikeys = require('./credentials.json');
 const { createCanvas, loadImage, registerFont } = require('canvas');
 
 
@@ -54,12 +54,13 @@ app.set('views', path.join(__dirname, 'views'));
 app.use(express.static('public'));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
+require('dotenv').config(); // Cargar variables de entorno
 
 async function authorize() {
     const jwtClient = new google.auth.JWT(
-        apikeys.client_email,
+        process.env.GOOGLE_CLIENT_EMAIL,
         null,
-        apikeys.private_key.replace(/\\n/g, '\n'),
+        process.env.GOOGLE_PRIVATE_KEY.replace(/\\n/g, '\n'),
         ['https://www.googleapis.com/auth/drive']
     );
 
