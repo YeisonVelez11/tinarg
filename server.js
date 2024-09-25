@@ -411,7 +411,8 @@ app.post('/upload', upload.fields([{ name: 'banner1' }, { name: 'banner_lateral'
                 fecha: currentDate,
                 banner: banner1Id ? `https://drive.google.com/thumbnail?id=${banner1Id}&sz=w1000` : null,
                 banner_lateral: bannerLateralId ? `https://drive.google.com/thumbnail?id=${bannerLateralId}&sz=w1000` : null,
-                folder: folderId // Agregar el ID de la carpeta
+                folder: folderId, // Agregar el ID de la carpeta
+                folder_name: folderName
             };
 
             // Agregar el nuevo objeto a los datos existentes
@@ -574,8 +575,14 @@ app.get('/take-screenshot', async (req, res) => {
         });
         
         const resultados = response.data;
-
+        let contador= 0;
         for (let date of resultados) {
+            contador ++;
+            console.log("-------------",obtenerFechaActual(), "---------");
+            if(resultados && resultados.length){
+                console.log(contador," de ", resultados.length);
+            }
+
             console.log(date);
             const screen = await axios.post('http://localhost:3000/screenshot', {
                 folderId: date.folder,
