@@ -11,8 +11,9 @@ const puppeteer = require('puppeteer');
 const { createCanvas, loadImage, registerFont } = require('canvas');
 const locateChrome = require('locate-chrome');
 
-
-
+const idCarpetaJsones = "1YXZ9RaTBwNh4-JJSBJBg4dsr2bIf1KQ0";
+const idCarpetaRaiz = '1LFO6UvWfam7KJSVRfGKlijv8eRLYVoD1';
+const idCarpetaBanners = "1rcCJ8bsaxd4VhTSA1TjiI1GEpFy_XJ6G";
 // Registrar la fuente
 registerFont(path.join(__dirname, "public",'fonts', 'HelveticaNeue.ttf'), { family: 'Helvetica Neue' });
 registerFont(path.join(__dirname, "public", 'fonts', 'SanFrancisco.ttf'), { family: 'San Francisco' });
@@ -298,7 +299,7 @@ async function processImage(screenshotBuffer, href, banner1Url, bannerLateralUrl
 app.get('/', async (req, res) => {
     try {
         const auth = await authorize();
-        const parentID = '1LFO6UvWfam7KJSVRfGKlijv8eRLYVoD1'; // ID de la carpeta raiz
+        const parentID = idCarpetaRaiz; // ID de la carpeta raiz
         const folders = await listFolders(auth, parentID); // Obtener carpetas de la carpeta por defecto
 
         res.render('index', {
@@ -358,18 +359,18 @@ app.post('/upload', upload.fields([{ name: 'banner1' }, { name: 'banner_lateral'
             const timestamp = Date.now();
             const fileBuffer = req.files['banner1'][0].buffer;
             const fileName = `banner1_${timestamp}.jpg`; //carpeta de los banners
-            banner1Id = await uploadBufferToDrive(auth, "1rcCJ8bsaxd4VhTSA1TjiI1GEpFy_XJ6G", fileName, fileBuffer, 'image/jpeg');
+            banner1Id = await uploadBufferToDrive(auth, idCarpetaBanners, fileName, fileBuffer, 'image/jpeg');
         }
 
         if (req.files['banner_lateral']) {
             const timestamp = Date.now();
             const fileBuffer = req.files['banner_lateral'][0].buffer;
             const fileName = `banner_lateral_${timestamp}.jpg`;//carpeta de los banners
-            bannerLateralId = await uploadBufferToDrive(auth, "1rcCJ8bsaxd4VhTSA1TjiI1GEpFy_XJ6G", fileName, fileBuffer, 'image/jpeg');
+            bannerLateralId = await uploadBufferToDrive(auth, idCarpetaBanners, fileName, fileBuffer, 'image/jpeg');
         }
 
         const jsonMimeType = 'application/json';
-        const jsonFolderId = '1YXZ9RaTBwNh4-JJSBJBg4dsr2bIf1KQ0'; // ID de la carpeta específica donde se guardarán los JSON
+        const jsonFolderId = idCarpetaJsones; // ID de la carpeta específica donde se guardarán los JSON
 
         // Procesar cada fecha en el rango
         for (let date = startDate.clone(); date.isSameOrBefore(endDate); date.add(1, 'days')) {
@@ -451,7 +452,7 @@ app.post('/json-by-dates', async (req, res) => {
         const dates = dateRange.split(' - ');
         const startDate = moment(dates[0], 'MM/DD/YYYY');
         const endDate = moment(dates[1], 'MM/DD/YYYY');
-        const jsonFolderId = '1YXZ9RaTBwNh4-JJSBJBg4dsr2bIf1KQ0'; // ID de la carpeta donde se guardan los JSON
+        const jsonFolderId = idCarpetaJsones; // ID de la carpeta donde se guardan los JSON
 
         let jsonResults = [];
 
@@ -492,7 +493,7 @@ app.post('/json-by-dates', async (req, res) => {
 app.post('/delete-json-item', async (req, res) => {
     try {
         const { fecha, itemId } = req.body; // Obtener fecha e ID del ítem
-        const jsonFolderId = '1YXZ9RaTBwNh4-JJSBJBg4dsr2bIf1KQ0'; // ID de la carpeta donde se guardan los JSON
+        const jsonFolderId = idCarpetaJsones; // ID de la carpeta donde se guardan los JSON
         const jsonFileName = `${fecha}.json`; // Nombre del archivo JSON para esa fecha
 
         const auth = await authorize();
