@@ -250,7 +250,7 @@ async function processImage(screenshotBuffer, href, banner1Url, bannerLateralUrl
     if(banner1Url){
         // Cargar banner1 y banner lateral desde las URLs
         const banner1Image = await loadImage(banner1Url); // Una URL pública
-        ctx.drawImage(banner1Image, (canvasWidth - banner1Image.width) / 2, 270); // Centrado
+        ctx.drawImage(banner1Image, (canvasWidth - banner1Image.width) / 2, banner1Image.height <= 100 ? 270 : 400); // Centrado
         console.log("vamos 9");
     }
 
@@ -553,6 +553,9 @@ app.post('/screenshot', async (req, res) => {
     }
 });
 
+app.post('/start', async (req, res) => {
+    res.send('iniciado');
+});
 
 function obtenerFechaActual() {
     const fechaActual = new Date();
