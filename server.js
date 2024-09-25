@@ -554,6 +554,7 @@ app.post('/screenshot', async (req, res) => {
 });
 
 app.get('/start', async (req, res) => {
+    console.log("start");
     res.send('iniciado');
 });
 
