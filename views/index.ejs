@@ -87,6 +87,17 @@
         }
 
         function loadJsonData(dateRange) {
+
+            const url = new URL(window.location.href);
+
+            // Obtener los parámetros de la URL
+            const params = new URLSearchParams(url.search);
+
+            // Verificar si el query parameter 'no_cargar_jsones_fechas' está presente
+            if (params.has('no_cargar_jsones_fechas')) {
+                return; // Aquí no ejecutamos la lógica deseada
+            }
+
             const loader = document.getElementById('loader');
             loader.style.display = 'block'; // Muestra el loader
 
