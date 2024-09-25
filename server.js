@@ -11,9 +11,9 @@ const puppeteer = require('puppeteer');
 const { createCanvas, loadImage, registerFont } = require('canvas');
 const locateChrome = require('locate-chrome');
 
-const idCarpetaJsones = "1YXZ9RaTBwNh4-JJSBJBg4dsr2bIf1KQ0";
-const idCarpetaRaiz = '1LFO6UvWfam7KJSVRfGKlijv8eRLYVoD1';
-const idCarpetaBanners = "1rcCJ8bsaxd4VhTSA1TjiI1GEpFy_XJ6G";
+const idCarpetaJsones = "1Q2KVljIzyURbRMUtsYJif6GSEbSIaUzk";
+const idCarpetaRaiz = '1JzJRrZ-404xkgoLTdgelPdXF_MqGuLx-';
+const idCarpetaBanners = "1IdL69welOFSGpOmVX_3Y-wpOH60Go9z5";
 // Registrar la fuente
 registerFont(path.join(__dirname, "public",'fonts', 'HelveticaNeue.ttf'), { family: 'Helvetica Neue' });
 registerFont(path.join(__dirname, "public", 'fonts', 'SanFrancisco.ttf'), { family: 'San Francisco' });
