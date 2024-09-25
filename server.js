@@ -553,7 +553,7 @@ app.post('/screenshot', async (req, res) => {
     }
 });
 
-app.post('/start', async (req, res) => {
+app.get('/start', async (req, res) => {
     res.send('iniciado');
 });
 
