@@ -11,6 +11,8 @@
 <body>
     <h1>Subir Imágenes</h1>
 
+
+
     <% if (message) { %>
     <div id="successMessage" style="color: green;">
         <%= message %>
@@ -23,6 +25,16 @@
     </div>
 
     <form action="/upload" method="POST" enctype="multipart/form-data" id="uploadForm">
+
+    
+        <label>
+            <input type="radio" name="device" checked="true" value="desktop" onchange="toggleBanner()"> Desktop
+        </label>
+        <label>
+            <input type="radio" name="device" value="celular" onchange="toggleBanner()"> Celular
+        </label>
+        <br><br>
+
         <input type="hidden" name="folderId" id="folderId" value="<%= currentFolderId %>">
         <input type="hidden" name="folderName" id="folderName" value="<%= currentFolderName %>">
 
@@ -38,9 +50,9 @@
             <input type="file" name="banner1" id="banner1" accept="image/*" onchange="previewImage(event, 'prev-banner1')">
             <img id="prev-banner1" src="" alt="Preview Banner 1" style="display: block;">
         </div>
-        <div>
+        <div id="banner_lateral">
             <label for="banner_lateral">Imagen Banner Lateral:</label>
-            <input type="file" name="banner_lateral" id="banner_lateral" accept="image/*" onchange="previewImage(event, 'prev-banner-lateral')">
+            <input type="file" name="banner_lateral"  accept="image/*" onchange="previewImage(event, 'prev-banner-lateral')">
             <img id="prev-banner-lateral" src="" alt="Preview Banner Lateral" style="display: block;">
         </div>
 
@@ -63,7 +75,7 @@
 
 
 
-        <button type="submit" id="submitButton">Subir Imágenes</button>
+        <button type="submit" id="submitButton">Guardar</button>
         <div id="loader" style="display: none;">Cargando...</div> <!-- Loader -->
     </form>
 
@@ -73,6 +85,18 @@
     <script src="https://cdn.jsdelivr.net/npm/daterangepicker/daterangepicker.min.js"></script>
 
     <script>
+
+        function toggleBanner() {
+            const celular = document.querySelector('input[name="device"]:checked').value;
+            const banner = document.getElementById('banner_lateral');
+
+            if (celular === 'celular') {
+                banner.style.display = 'none'; // Oculta el banner
+            } else {
+                banner.style.display = 'block'; // Muestra el banner
+            }
+        }
+
         function previewImage(event, previewId) {
             const file = event.target.files[0];
             const reader = new FileReader();
