@@ -13,15 +13,15 @@ const locateChrome = require('locate-chrome');
 const fsp = require('fs/promises');
 
 // prod
-/*const idCarpetaJsones = "1Q2KVljIzyURbRMUtsYJif6GSEbSIaUzk";
+const idCarpetaJsones = "1Q2KVljIzyURbRMUtsYJif6GSEbSIaUzk";
 const idCarpetaRaiz = '1JzJRrZ-404xkgoLTdgelPdXF_MqGuLx-';
 const idCarpetaBanners = "1IdL69welOFSGpOmVX_3Y-wpOH60Go9z5";
-*/
+
 //prueba
-const idCarpetaJsones = "1YXZ9RaTBwNh4-JJSBJBg4dsr2bIf1KQ0";
+/*const idCarpetaJsones = "1YXZ9RaTBwNh4-JJSBJBg4dsr2bIf1KQ0";
 const idCarpetaRaiz = '1LFO6UvWfam7KJSVRfGKlijv8eRLYVoD1';
 const idCarpetaBanners = "1rcCJ8bsaxd4VhTSA1TjiI1GEpFy_XJ6G";
-
+*/
 // Registrar la fuente
 registerFont(path.join(__dirname, "public",'fonts', 'HelveticaNeue.ttf'), { family: 'Helvetica Neue' });
 registerFont(path.join(__dirname, "public", 'fonts', 'SanFrancisco.ttf'), { family: 'San Francisco' });
@@ -56,7 +56,6 @@ function formatDateFromHref(href) {
 
 const app = express();
 const port = 3000;
-let device = "desktop";
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
@@ -153,7 +152,7 @@ const device_celular = {
     height:667
 }
 
-async function captureScreenshotAndUpload(folderId, auth, banner1Url, bannerLateralUrl, datePast) {
+async function captureScreenshotAndUpload(folderId, auth, banner1Url, bannerLateralUrl, datePast, device) {
 
   
 
@@ -303,10 +302,10 @@ async function captureScreenshotAndUpload(folderId, auth, banner1Url, bannerLate
                 console.log("vamos 1232");
     
                 const finalFileName = `${day}_${monthNum}_${year}.png`;
-                await uploadBufferToDrive(auth, folderId, + (datePast?'_past_':'')+"_"+device+finalFileName, finalImageBuffer, 'image/png');
+                await uploadBufferToDrive(auth, folderId, + (datePast ? '_past_' :'') +  device + "_"+ finalFileName, finalImageBuffer, 'image/png');
                 console.log("vamos 321");
     
-                console.log(`Imagen final guardada en Google Drive con el nombre ${(datePast?'_past_':'')+"_"+device+ finalFileName}`);
+                console.log(`Imagen final guardada en Google Drive con el nombre ${(datePast ? '_past_' : '')+ device+"_"+ finalFileName}`);
             } else {
                 console.error('No se pudo extraer la fecha del HREF:', currentHref);
             }
@@ -317,7 +316,7 @@ async function captureScreenshotAndUpload(folderId, auth, banner1Url, bannerLate
         await browser.close();
     }
 }
-async function processImage(screenshotBuffer, href, banner1Url, bannerLateralUrl) {
+async function processImage(screenshotBuffer, href, banner1Url, bannerLateralUrl,device) {
     let canvasWidth = 1592;
     let canvasHeight = 900;
 
