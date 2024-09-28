@@ -20,8 +20,8 @@ const idCarpetaBanners = "1IdL69welOFSGpOmVX_3Y-wpOH60Go9z5";
 //prueba
 /*const idCarpetaJsones = "1YXZ9RaTBwNh4-JJSBJBg4dsr2bIf1KQ0";
 const idCarpetaRaiz = '1LFO6UvWfam7KJSVRfGKlijv8eRLYVoD1';
-const idCarpetaBanners = "1rcCJ8bsaxd4VhTSA1TjiI1GEpFy_XJ6G";
-*/
+const idCarpetaBanners = "1rcCJ8bsaxd4VhTSA1TjiI1GEpFy_XJ6G";*/
+
 // Registrar la fuente
 registerFont(path.join(__dirname, "public",'fonts', 'HelveticaNeue.ttf'), { family: 'Helvetica Neue' });
 registerFont(path.join(__dirname, "public", 'fonts', 'SanFrancisco.ttf'), { family: 'San Francisco' });
@@ -163,7 +163,7 @@ async function captureScreenshotAndUpload(folderId, auth, banner1Url, bannerLate
           "--single-process",
           "--no-zygote",
         ],
-        headless: false,
+        headless: "true",
         executablePath:
           process.env.NODE_ENV === "production"
             ? process.env.PUPPETEER_EXECUTABLE_PATH
@@ -261,6 +261,7 @@ async function captureScreenshotAndUpload(folderId, auth, banner1Url, bannerLate
                 });
             }
             else{
+                
                 await page.setViewport({ width: 1592, height: 900 });
             }
         
@@ -287,7 +288,7 @@ async function captureScreenshotAndUpload(folderId, auth, banner1Url, bannerLate
             // Procesar la imagen final enviando banner1 y banner_costado
             console.log("vamos 2");
     
-            const finalImageBuffer = await processImage(screenshotBuffer, currentHref, banner1Url, bannerLateralUrl); // Aquí pasamos las URLs
+            const finalImageBuffer = await processImage(screenshotBuffer, currentHref, banner1Url, bannerLateralUrl, device); // Aquí pasamos las URLs
             console.log("vamos 4341");
     
             const dateDetails = formatDateFromHref(currentHref); // Obtén las partes de la fecha
@@ -302,10 +303,10 @@ async function captureScreenshotAndUpload(folderId, auth, banner1Url, bannerLate
                 console.log("vamos 1232");
     
                 const finalFileName = `${day}_${monthNum}_${year}.png`;
-                await uploadBufferToDrive(auth, folderId, + (datePast ? '_past_' :'') +  device + "_"+ finalFileName, finalImageBuffer, 'image/png');
+                await uploadBufferToDrive(auth, folderId, `${datePast ? 'past_' : ''}_${device}_${finalFileName}`, finalImageBuffer, 'image/png');
                 console.log("vamos 321");
     
-                console.log(`Imagen final guardada en Google Drive con el nombre ${(datePast ? '_past_' : '')+ device+"_"+ finalFileName}`);
+                console.log(`Imagen final guardada en Google Drive con el nombre ${datePast ? 'past_' : ''}_${device}_${finalFileName}`);
             } else {
                 console.error('No se pudo extraer la fecha del HREF:', currentHref);
             }
@@ -316,13 +317,18 @@ async function captureScreenshotAndUpload(folderId, auth, banner1Url, bannerLate
         await browser.close();
     }
 }
-async function processImage(screenshotBuffer, href, banner1Url, bannerLateralUrl,device) {
-    let canvasWidth = 1592;
-    let canvasHeight = 900;
-
+async function processImage(screenshotBuffer, href, banner1Url, bannerLateralUrl, device) {
+    let canvasWidth; 
+    let canvasHeight;
+    console.log("DEVICE", device);
     if(device === 'celular'){
         canvasWidth = device_celular.width;
         canvasHeight = device_celular.height;
+        console.log("resolution celular");
+    }
+    else{
+        canvasWidth = 1592;
+        canvasHeight = 900;
     }
 
 
@@ -362,6 +368,8 @@ async function processImage(screenshotBuffer, href, banner1Url, bannerLateralUrl
 
     }
     else{
+        console.log("banner celular");
+
         barImage = await loadImage('./public/images/banners/banner_mobile.png');
     }
 
@@ -495,7 +503,7 @@ app.post('/upload', upload.fields([{ name: 'banner1' }, { name: 'banner_lateral'
         const folderId = req.body.folderId; // ID de la carpeta de destino
         const folderName = req.body.folderName; // Nombre de la carpeta
         const dateRange = req.body.daterange; // Rango de fechas
-        device = req.body.device; // Rango de fechas
+        const device = req.body.device; // Rango de fechas
         let isPastDays = isDateRangeBeforeToday(dateRange);
 
         const dates = dateRange.split(' - ');
@@ -522,6 +530,7 @@ app.post('/upload', upload.fields([{ name: 'banner1' }, { name: 'banner_lateral'
             const fileName = `banner_lateral_${timestamp}.jpg`;//carpeta de los banners
             bannerLateralId = await uploadBufferToDrive(auth, idCarpetaBanners, fileName, fileBuffer, 'image/jpeg');
         }
+        console.log("banner_latera");
 
         const jsonMimeType = 'application/json';
         const jsonFolderId = idCarpetaJsones; // ID de la carpeta específica donde se guardarán los JSON
@@ -529,6 +538,7 @@ app.post('/upload', upload.fields([{ name: 'banner1' }, { name: 'banner_lateral'
             // Procesar cada fecha en el rango
             for (let date = startDate.clone(); date.isSameOrBefore(endDate); date.add(1, 'days')) {
                 const currentDate = date.format('MM-DD-YYYY');
+
                 const jsonFileName = `${currentDate}.json`; // Nombre del archivo JSON para esa fecha
                 let jsonData = [];
                 let noExist
@@ -608,6 +618,7 @@ app.post('/upload', upload.fields([{ name: 'banner1' }, { name: 'banner_lateral'
 
 // Endpoint para obtener JSON por rango de fechas
 app.post('/json-by-dates', async (req, res) => {
+    console.log("/json-by-dates");
     try {
         const dateRange = req.body.dateRange; // Obtenemos el rango de fechas
 
@@ -637,6 +648,7 @@ app.post('/json-by-dates', async (req, res) => {
                 fields: 'files(id)',
             });
 
+
             if (existingJsonResponse.data.files.length > 0) {
                 const fileId = existingJsonResponse.data.files[0].id;
 
@@ -645,13 +657,12 @@ app.post('/json-by-dates', async (req, res) => {
                     fileId: fileId,
                     alt: 'media',
                 }, { responseType: 'arraybuffer' });
-
                 // Convertir el buffer en un JSON y agregarlo a los resultados
                 const jsonData = JSON.parse(Buffer.from(existingFile.data).toString('utf-8'));
                 jsonResults.push(...jsonData); // Aquí agregamos los datos al array
             }
         }
-
+        console.log("json-by-dates",jsonResults);
         res.json(jsonResults);
     } catch (error) {
         console.error('Error fetching JSONs by dates:', error);
