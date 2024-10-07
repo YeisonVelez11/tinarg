@@ -302,11 +302,11 @@ async function captureScreenshotAndUpload(folderId, auth, banner1Url, bannerLate
                 // Crear el nombre del archivo
                 console.log("vamos 1232");
     
-                const finalFileName = `${day}_${monthNum}_${year}.png`;
-                await uploadBufferToDrive(auth, folderId, `${datePast ? 'past_' : ''}_${!device ? 'desktop' : device}_${finalFileName}`, finalImageBuffer, 'image/png');
+                const finalFileName = `${day}_${monthNum}_${year}_${datePast ? 'past_' : ''}_${!device ? 'desktop' : device}_.png`;
+                await uploadBufferToDrive(auth, folderId, `${finalFileName}`, finalImageBuffer, 'image/png');
                 console.log("vamos 321");
     
-                console.log(`Imagen final guardada en Google Drive con el nombre ${datePast ? 'past_' : ''}_${!device ? 'desktop' : device}_${finalFileName}`);
+                console.log(`Imagen final guardada en Google Drive con el nombre ${finalFileName}`);
             } else {
                 console.error('No se pudo extraer la fecha del HREF:', currentHref);
             }
