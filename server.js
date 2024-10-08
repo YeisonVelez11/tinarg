@@ -287,8 +287,8 @@ async function captureScreenshotAndUpload(folderId, auth, banner1Url, bannerLate
     
             const screenshotBuffer = await page.screenshot();
             // Procesar la imagen final enviando banner1 y banner_costado
-            console.log("vamos 2");
-    
+            console.log("dando 10 seg mientras toma imagen");
+            await waitFor(10000);
             const finalImageBuffer = await processImage(screenshotBuffer, currentHref, banner1Url, bannerLateralUrl, device); // Aquí pasamos las URLs
             console.log("vamos 4341");
     
@@ -302,7 +302,7 @@ async function captureScreenshotAndUpload(folderId, auth, banner1Url, bannerLate
     
                 // Crear el nombre del archivo
                 console.log("vamos 1232");
-                await waitFor(10000);
+
                 const finalFileName = `${day}_${monthNum}_${year}_${datePast ? 'past_' : ''}_${!device ? 'desktop' : device}_.png`;
                 await uploadBufferToDrive(auth, folderId, `${finalFileName}`, finalImageBuffer, 'image/png');
                 console.log("vamos 321");
