@@ -798,7 +798,7 @@ app.get('/take-screenshot', async (req, res) => {
         const resultadosUnicos = [];
         const set = new Set(); // Crear un Set para los identificadores únicos
         
-        resultados.forEach(current => {
+        response.data.forEach(current => {
             // Crear un identificador único basado en las claves especificadas
             const identifier = `${current.fecha}|${current.banner}|${current.banner_lateral}|${current.folder}|${current.folder_name}|${current.device}`;
         
