@@ -541,7 +541,7 @@ app.post('/upload', upload.fields([{ name: 'banner1' }, { name: 'banner_lateral'
 
                 const jsonFileName = `${currentDate}.json`; // Nombre del archivo JSON para esa fecha
                 let jsonData = [];
-                let noExist
+
                 // Crear una instancia de Google Drive
                 const drive = google.drive({ version: 'v3', auth });
 
@@ -593,6 +593,7 @@ app.post('/upload', upload.fields([{ name: 'banner1' }, { name: 'banner_lateral'
                 await uploadFileToDrive(auth, jsonFolderId, jsonFileName, jsonBuffer, jsonMimeType);
             }
         
+            console.log("temrina de crear los jsones")
 
 
         try {
@@ -600,7 +601,6 @@ app.post('/upload', upload.fields([{ name: 'banner1' }, { name: 'banner_lateral'
             if(isPastDays){
                await axios.get(`http://localhost:3000/take-screenshot?range=${dateRange}`);
             }
-
         }
         catch (e){
             console.log("error", e);
@@ -636,9 +636,12 @@ app.post('/json-by-dates', async (req, res) => {
         const jsonFolderId = idCarpetaJsones; // ID de la carpeta donde se guardan los JSON
 
         let jsonResults = [];
-
+        await waitFor(5000);
         // Procesar cada fecha en el rango
         for (let date = startDate.clone(); date.isSameOrBefore(endDate); date.add(1, 'days')) {
+            console.log(date);
+            await waitFor(2000);
+
             const currentDate = date.format('MM-DD-YYYY');
             const jsonFileName = `${currentDate}.json`;
 
@@ -660,6 +663,9 @@ app.post('/json-by-dates', async (req, res) => {
                 // Convertir el buffer en un JSON y agregarlo a los resultados
                 const jsonData = JSON.parse(Buffer.from(existingFile.data).toString('utf-8'));
                 jsonResults.push(...jsonData); // Aquí agregamos los datos al array
+            }
+            else{
+                console.log("no existe ",currentDate)
             }
         }
         console.log("json-by-dates",jsonResults);
@@ -788,8 +794,20 @@ app.get('/take-screenshot', async (req, res) => {
         const response = await axios.post('http://localhost:3000/json-by-dates', {
             dateRange: range && isDateRangeBeforeToday(range) ? range : obtenerFechaActual() 
         });
-
-        const resultados = response.data;
+        const resultadosUnicos = response.data.reduce((acc, current) => {
+            // Crea un identificador único para el objeto actual basado en las keys especificadas
+            const identifier = `${current.fecha}|${current.banner}|${current.banner_lateral}|${current.folder}|${current.folder_name}|${current.device}`;
+        
+            // Verificamos si el identificador ya existe en el Set
+            if (!acc.set.has(identifier)) {
+                acc.set.add(identifier); // Agrega el identificador al Set
+                acc.result.push(current); // Agrega el objeto actual a los resultados únicos
+            }
+            
+            return acc;
+        }, { set: new Set(), result: [] }).result; // Regresa solo el array de resultados únicos
+        
+        const resultados = resultadosUnicos;
         console.log(resultados.length);
 
         let contador= 0;
@@ -829,7 +847,6 @@ app.get('/take-screenshot', async (req, res) => {
 
         res.status(200).json({ message: 'Proceso completado', resultados: resultados });
     } catch (error) {
-        console.error(error);
         res.status(500).json({ message: 'Error en el proceso', error: error.message });
     }
 });
