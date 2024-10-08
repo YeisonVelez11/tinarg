@@ -794,19 +794,20 @@ app.get('/take-screenshot', async (req, res) => {
         const response = await axios.post('http://localhost:3000/json-by-dates', {
             dateRange: range && isDateRangeBeforeToday(range) ? range : obtenerFechaActual() 
         });
-        const resultadosUnicos = response.data.reduce((acc, current) => {
-            // Crea un identificador único para el objeto actual basado en las keys especificadas
+
+        const resultadosUnicos = [];
+        const set = new Set(); // Crear un Set para los identificadores únicos
+        
+        resultados.forEach(current => {
+            // Crear un identificador único basado en las claves especificadas
             const identifier = `${current.fecha}|${current.banner}|${current.banner_lateral}|${current.folder}|${current.folder_name}|${current.device}`;
         
-            // Verificamos si el identificador ya existe en el Set
-            if (!acc.set.has(identifier)) {
-                acc.set.add(identifier); // Agrega el identificador al Set
-                acc.result.push(current); // Agrega el objeto actual a los resultados únicos
+            // Verificamos si el identificador ya está en el Set
+            if (!set.has(identifier)) {
+                set.add(identifier); // Agregar identificador al Set
+                resultadosUnicos.push(current); // Agregar el objeto actual a los resultados únicos
             }
-            
-            return acc;
-        }, { set: new Set(), result: [] }).result; // Regresa solo el array de resultados únicos
-        
+        });
         const resultados = resultadosUnicos;
         console.log(resultados.length);
 
