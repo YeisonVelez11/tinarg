@@ -574,6 +574,7 @@ app.post('/upload', upload.fields([{ name: 'banner1' }, { name: 'banner_lateral'
                 const dateObject = {
                     id: Date.now().toString(), // Genera un ID usando el timestamp
                     fecha: currentDate,
+                    hora: moment().format('HH:mm:ss'),
                     banner: banner1Id ? `https://drive.google.com/thumbnail?id=${banner1Id}&sz=w1000` : null,
                     banner_lateral: bannerLateralId ? `https://drive.google.com/thumbnail?id=${bannerLateralId}&sz=w1000` : null,
                     folder: folderId, // Agregar el ID de la carpeta
@@ -584,13 +585,15 @@ app.post('/upload', upload.fields([{ name: 'banner1' }, { name: 'banner_lateral'
                 // Agregar el nuevo objeto a los datos existentes
                 if(req.files['banner1'] || req.files['banner_lateral']){
                     jsonData.push(dateObject);
-                }
-         
                 // Convertir el array de objetos JSON a un buffer
                 const jsonBuffer = Buffer.from(JSON.stringify(jsonData, null, 2));
 
                 // Subir el archivo JSON a Google Drive
                 await uploadFileToDrive(auth, jsonFolderId, jsonFileName, jsonBuffer, jsonMimeType);
+
+                }
+         
+
             }
         
             console.log("temrina de crear los jsones")
@@ -800,7 +803,7 @@ app.get('/take-screenshot', async (req, res) => {
         
         response.data.forEach(current => {
             // Crear un identificador único basado en las claves especificadas
-            const identifier = `${current.fecha}|${current.banner}|${current.banner_lateral}|${current.folder}|${current.folder_name}|${current.device}`;
+            const identifier = `${current.fecha}|${current.folder}|${current.folder_name}|${current.device}`;
         
             // Verificamos si el identificador ya está en el Set
             if (!set.has(identifier)) {
