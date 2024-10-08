@@ -248,6 +248,7 @@ async function captureScreenshotAndUpload(folderId, auth, banner1Url, bannerLate
             console.log("vamos 11");
             try {
                 await page.goto(currentHref, { waitUntil: ['domcontentloaded', 'networkidle2'], timeout: 60000 });
+                
             } catch (error) {
                 console.error("Error navegando a la URL:", error);
             }
@@ -301,7 +302,7 @@ async function captureScreenshotAndUpload(folderId, auth, banner1Url, bannerLate
     
                 // Crear el nombre del archivo
                 console.log("vamos 1232");
-    
+                await waitFor(10000);
                 const finalFileName = `${day}_${monthNum}_${year}_${datePast ? 'past_' : ''}_${!device ? 'desktop' : device}_.png`;
                 await uploadBufferToDrive(auth, folderId, `${finalFileName}`, finalImageBuffer, 'image/png');
                 console.log("vamos 321");
@@ -311,7 +312,6 @@ async function captureScreenshotAndUpload(folderId, auth, banner1Url, bannerLate
                 console.error('No se pudo extraer la fecha del HREF:', currentHref);
             }
         }
-
         await page.close();
     } finally {
         await browser.close();
@@ -359,7 +359,6 @@ async function processImage(screenshotBuffer, href, banner1Url, bannerLateralUrl
         ctx.drawImage(screenshotImage, 0, 21);
     }
 
-    console.log("vamos 6");
     let barImage;
     // Cargar bar.png en la parte superior
 
@@ -375,15 +374,12 @@ async function processImage(screenshotBuffer, href, banner1Url, bannerLateralUrl
 
 
    
-    console.log("vamos 7");
 
     ctx.drawImage(barImage, 0, 0);
-    console.log("vamos 8");
 
     if(banner1Url){
         // Cargar banner1 y banner lateral desde las URLs
         const banner1Image = await loadImage(banner1Url); // Una URL pública
-        console.log("vamos 9");
 
         if (device !== 'celular'){
             ctx.drawImage(banner1Image, (canvasWidth - banner1Image.width) / 2, banner1Image.height <= 100 ? 340 : 270); // Centrado
@@ -398,7 +394,6 @@ async function processImage(screenshotBuffer, href, banner1Url, bannerLateralUrl
 
     if(bannerLateralUrl && device !== 'celular'){
         const bannerLateralImage = await loadImage(bannerLateralUrl); // Otra URL pública
-        console.log("vamos 10");
         ctx.drawImage(bannerLateralImage, canvasWidth - bannerLateralImage.width - 200, 550); // Ajustar posición
     }
 
@@ -410,7 +405,6 @@ async function processImage(screenshotBuffer, href, banner1Url, bannerLateralUrl
         ctx.fillText(formattedDate, canvasWidth - 90 , 16);
 
         const x = await loadImage('./public/images/banners/x.png'); // Otra URL pública
-        console.log("vamos 10");
         ctx.drawImage(x, canvasWidth - 30, canvasHeight - 132); // Ajustar posición
     }
     else{
@@ -430,7 +424,6 @@ async function processImage(screenshotBuffer, href, banner1Url, bannerLateralUrl
     if(device !== 'celular'){
         const textWidth = ctx.measureText(urltext).width;
         let displayText = urltext;
-        console.log("vamos 11");
     
         if (textWidth > 582) {
             const ellipsis = "  ...";
@@ -439,13 +432,11 @@ async function processImage(screenshotBuffer, href, banner1Url, bannerLateralUrl
             while (ctx.measureText(truncatedText + ellipsis).width > 582 && truncatedText.length > 0) {
                 truncatedText = truncatedText.slice(0, -1);
             }
-            console.log("vamos 12");
     
             displayText = truncatedText + ellipsis;
         }
     
         ctx.fillText(displayText, 155, 70);
-        console.log("vamos 13");
     }
 
 
