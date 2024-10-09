@@ -90,24 +90,53 @@ async function listFolders(auth, parentId) {
     return response.data.files;
 }
 
+
+async function findFileByName(auth, folderId, fileName) {
+    const drive = google.drive({ version: 'v3', auth });
+    const query = `name='${fileName}' and '${folderId}' in parents and trashed=false`;
+    
+    const response = await drive.files.list({
+        q: query,
+        fields: 'files(id, name)',
+        pageSize: 1,
+    });
+
+    return response.data.files.length > 0 ? response.data.files[0] : null;
+}
+
 async function uploadBufferToDrive(auth, folderId, fileName, buffer, mimeType) {
     const drive = google.drive({ version: 'v3', auth });
-    const fileMetadata = {
-        name: fileName,
-        parents: [folderId],
-    };
+    
+    // Buscar el archivo existente por nombre en la carpeta especificada
+    const existingFile = await findFileByName(auth, folderId, fileName);
 
     const media = {
         mimeType: mimeType,
         body: streamifier.createReadStream(buffer),
     };
 
-    const response = await drive.files.create({
-        resource: fileMetadata,
-        media: media,
-        fields: 'id',
-    });
-    return response.data.id;
+    if (existingFile) {
+        // Si existe, actualizamos el archivo
+        const response = await drive.files.update({
+            fileId: existingFile.id,
+            media: media,
+            fields: 'id',
+        });
+        return response.data.id; // ID del archivo actualizado
+    } else {
+        // Si no existe, creamos un nuevo archivo
+        const fileMetadata = {
+            name: fileName,
+            parents: [folderId],
+        };
+
+        const response = await drive.files.create({
+            resource: fileMetadata,
+            media: media,
+            fields: 'id',
+        });
+        return response.data.id; // ID del nuevo archivo creado
+    }
 }
 
 async function uploadFileToDrive(auth, folderId, fileName, fileBuffer, mimeType) {
@@ -271,18 +300,29 @@ async function captureScreenshotAndUpload(folderId, auth, banner1Url, bannerLate
 //            await waitFor(60000);
             console.log("vamos 133");
     
-            await page.evaluate(() => {
+            await page.evaluate((device) => {
                 const adds = document.querySelectorAll(".content-banner.hidden-m");
                 adds.forEach(add => add.style.opacity = 0);
+
+                if(adds.length === 0 && device !== "celular"){
+                    const header = document.querySelector(".main-article--header");
+                    //si no hay publicidades movemos el titulo hacia abajo para poner el banner
+                    if(header){
+                        header.style["margin-top"] = "275px";
+                    }
+                }
 
                 const adds2 = document.querySelectorAll(".content-banner");
                 adds2.forEach(add => add.style.opacity = 0);
 
                 const campana = document.querySelectorAll(".amp-web-push_container");
                 campana.forEach(add => add.style.opacity = 0);
-                
-
-            });
+                //en celular no se debe ver la imagen
+                if(device === 'celular'){
+                    document.querySelector(".main-photo").style.opacity = 0
+                }
+               
+            },device);
             console.log("vamos 1");
     
             const screenshotBuffer = await page.screenshot();

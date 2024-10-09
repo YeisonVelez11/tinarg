@@ -92,14 +92,20 @@ function formatDateFromHref(href) {
                         adds[0].style.opacity= 0;
                         adds[0].style.height= "150px";
                     }
-                    if(adds && adds[1]){
+                    else if(adds && adds[1]){
                         adds[1].style.opacity = 0;
                     }
-                    if(adds && adds[2]){
+                    else if(adds && adds[2]){
                         adds[2].style.opacity = 0;
                     }
-                    if(adds && adds[3]){
+                    else if(adds && adds[3]){
                         adds[3].style.opacity = 0;
+                    }
+                    else {
+                        const header = document.querySelector(".main-article--header");
+                        if(header){
+                            header.style["margin-top"] = "150px";
+                        }
                     }
 
                 });
