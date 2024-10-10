@@ -277,12 +277,12 @@ async function captureScreenshotAndUpload(folderId, auth, banner1Url, bannerLate
             console.log("vamos 11");
             try {
                 await page.goto(currentHref, { waitUntil: ['domcontentloaded', 'networkidle2'], timeout: 60000 });
-                await waitFor(5000);
+                //await waitFor(5000);
 
                 if(device !== 'celular'){
-                    await page.waitForSelector('.main-photo img'); // Usa el selector adecuado para tu imagen
+                    //await page.waitForSelector('.main-photo img'); // Usa el selector adecuado para tu imagen
                     //evitar imagen gris
-                    const imagenGris = await page.evaluate(() => {
+                    /*const imagenGris = await page.evaluate(() => {
                         const imagen = document.querySelector(".main-photo img");
                         if(imagen){
                             const src = imagen.src;
@@ -292,7 +292,7 @@ async function captureScreenshotAndUpload(folderId, auth, banner1Url, bannerLate
                                 imagen.src = src;
                             }
                         }
-                    });
+                    });*/
 
                 }
 
@@ -342,11 +342,11 @@ async function captureScreenshotAndUpload(folderId, auth, banner1Url, bannerLate
                
             },device);
             console.log("vamos 1");
-    
+            await waitFor(10000);
+
             const screenshotBuffer = await page.screenshot();
             // Procesar la imagen final enviando banner1 y banner_costado
             console.log("dando 10 seg mientras toma imagen");
-            await waitFor(10000);
             const finalImageBuffer = await processImage(screenshotBuffer, currentHref, banner1Url, bannerLateralUrl, device); // Aquí pasamos las URLs
             console.log("vamos 4341");
     
