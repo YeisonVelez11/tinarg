@@ -277,9 +277,23 @@ async function captureScreenshotAndUpload(folderId, auth, banner1Url, bannerLate
             console.log("vamos 11");
             try {
                 await page.goto(currentHref, { waitUntil: ['domcontentloaded', 'networkidle2'], timeout: 60000 });
+                await waitFor(5000);
 
                 if(device !== 'celular'){
                     await page.waitForSelector('.main-photo img'); // Usa el selector adecuado para tu imagen
+                    //evitar imagen gris
+                    const imagenGris = await page.evaluate(() => {
+                        const imagen = document.querySelector(".main-photo img");
+                        if(imagen){
+                            const src = imagen.src;
+                            const amp = document.querySelector("figure amp-img");
+                            if(amp){
+                                amp.attributes.src = src;
+                                imagen.src = src;
+                            }
+                        }
+                    });
+
                 }
 
             } catch (error) {
