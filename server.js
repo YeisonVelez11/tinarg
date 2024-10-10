@@ -277,7 +277,11 @@ async function captureScreenshotAndUpload(folderId, auth, banner1Url, bannerLate
             console.log("vamos 11");
             try {
                 await page.goto(currentHref, { waitUntil: ['domcontentloaded', 'networkidle2'], timeout: 60000 });
-                
+
+                if(device !== 'celular'){
+                    await page.waitForSelector('.main-photo img'); // Usa el selector adecuado para tu imagen
+                }
+
             } catch (error) {
                 console.error("Error navegando a la URL:", error);
             }
