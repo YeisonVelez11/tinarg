@@ -20,8 +20,8 @@ const idCarpetaBanners = "1IdL69welOFSGpOmVX_3Y-wpOH60Go9z5";
 //prueba
 /*const idCarpetaJsones = "1YXZ9RaTBwNh4-JJSBJBg4dsr2bIf1KQ0";
 const idCarpetaRaiz = '1LFO6UvWfam7KJSVRfGKlijv8eRLYVoD1';
-const idCarpetaBanners = "1rcCJ8bsaxd4VhTSA1TjiI1GEpFy_XJ6G";*/
-
+const idCarpetaBanners = "1rcCJ8bsaxd4VhTSA1TjiI1GEpFy_XJ6G";
+*/
 // Registrar la fuente
 registerFont(path.join(__dirname, "public",'fonts', 'HelveticaNeue.ttf'), { family: 'Helvetica Neue' });
 registerFont(path.join(__dirname, "public", 'fonts', 'SanFrancisco.ttf'), { family: 'San Francisco' });
@@ -462,7 +462,7 @@ async function processImage(screenshotBuffer, href, banner1Url, bannerLateralUrl
         ctx.fillStyle = 'white';
         ctx.fillText(formattedDate, canvasWidth - 90 , 16);
 
-        const x = await loadImage('./public/images/banners/x.png'); // Otra URL pública
+        const x = await loadImage('./public/images/banners/x.jpg'); // Otra URL pública
         ctx.drawImage(x, canvasWidth - 30, canvasHeight - 132); // Ajustar posición
     }
     else{
@@ -847,7 +847,7 @@ app.get('/take-screenshot', async (req, res) => {
             dateRange: range && isDateRangeBeforeToday(range) ? range : obtenerFechaActual() 
         });
 
-        const resultadosUnicos = [];
+        /*const resultadosUnicos = [];
         const set = new Set(); // Crear un Set para los identificadores únicos
         
         response.data.forEach(current => {
@@ -860,7 +860,9 @@ app.get('/take-screenshot', async (req, res) => {
                 resultadosUnicos.push(current); // Agregar el objeto actual a los resultados únicos
             }
         });
-        const resultados = resultadosUnicos;
+        const resultados = resultadosUnicos;*/
+        const resultados = response.data;
+
         console.log(resultados.length);
 
         let contador= 0;
