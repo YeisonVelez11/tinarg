@@ -361,7 +361,7 @@ async function captureScreenshotAndUpload(folderId, auth, banner1Url, bannerLate
                 // Crear el nombre del archivo
                 console.log("vamos 1232");
 
-                const finalFileName = `${day}_${monthNum}_${year}_${datePast ? 'past_' : ''}_${!device ? 'desktop' : device}_.png`;
+                const finalFileName = `${day}_${monthNum}_${year}__${!device ? 'desktop' : device}_.png`;
                 await uploadBufferToDrive(auth, folderId, `${finalFileName}`, finalImageBuffer, 'image/png');
                 console.log("vamos 321");
     
