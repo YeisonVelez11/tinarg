@@ -180,7 +180,8 @@ const device_celular = {
     width:355,
     height:667
 }
-
+let intentos = 0;
+let hayError = false;
 async function captureScreenshotAndUpload(folderId, auth, banner1Url, bannerLateralUrl, datePast, device) {
 
   
@@ -205,6 +206,8 @@ async function captureScreenshotAndUpload(folderId, auth, banner1Url, bannerLate
     page.on('console', msg => console.log('PAGE LOG:', msg.text()));
 
     try {
+        hayError = false;
+
         console.log("aqui");
         console.log("datePast",datePast);
         let currentHref;
@@ -370,9 +373,28 @@ async function captureScreenshotAndUpload(folderId, auth, banner1Url, bannerLate
                 console.error('No se pudo extraer la fecha del HREF:', currentHref);
             }
         }
+        else{
+            console.log("no se obtuvo el href",currentHref);
+        }
+        intentos = 0;
         await page.close();
-    } finally {
+    } 
+    catch(e){
+        console.log("reeeintenta");
+        hayError = true;
+        intentos++;
+    }
+    finally {
         await browser.close();
+        if(hayError && intentos <= 3){
+            if(intentos === 3){
+                intentos = 0;
+            }
+            else{
+                captureScreenshotAndUpload(folderId, auth, banner1Url, bannerLateralUrl, datePast, device);
+            }
+            hayError = false;
+        }
     }
 }
 async function processImage(screenshotBuffer, href, banner1Url, bannerLateralUrl, device) {
