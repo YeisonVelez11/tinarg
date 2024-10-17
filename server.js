@@ -16,6 +16,9 @@ const fsp = require('fs/promises');
 const idCarpetaJsones = "1Q2KVljIzyURbRMUtsYJif6GSEbSIaUzk";
 const idCarpetaRaiz = '1JzJRrZ-404xkgoLTdgelPdXF_MqGuLx-';
 const idCarpetaBanners = "1IdL69welOFSGpOmVX_3Y-wpOH60Go9z5";
+const fileJsonPasado = "1DuZ6LaMzWquaISQRURsJ7VAqUUkSBBbb";
+
+
 
 //prueba
 /*const idCarpetaJsones = "1YXZ9RaTBwNh4-JJSBJBg4dsr2bIf1KQ0";
@@ -180,6 +183,77 @@ const device_celular = {
     width:355,
     height:667
 }
+
+
+// Función para procesar el archivo JSON
+async function agregarHrefJson(hrefJson) {
+    try {
+        // 1. Obtener el archivo JSON
+        const response = await drive.files.get({
+            fileId: fileJsonPasado,
+            alt: 'media'
+        });
+
+        // 2. Parsear el contenido a JSON
+        const contenidoActual = JSON.parse(response.data);
+
+        // 3. Verificar que el contenido sea un arreglo
+        if (!Array.isArray(contenidoActual)) {
+            console.error("El contenido del archivo JSON no es un arreglo.");
+            return;
+        }
+        const hrefExistente = contenidoActual.some(item => item.href === hrefJson.href);
+
+        if (hrefExistente) {
+            console.log(`El href "${hrefExistente.href}" ya existe. No se guardará nada.`);
+            return; // Salir de la función si el nombre no es único
+        }
+
+        // 4. Agregar el nuevo registro al inicio del arreglo
+        contenidoActual.unshift(hrefJson);
+
+        // 5. Convertir de nuevo a JSON
+        const jsonModificado = JSON.stringify(contenidoActual, null, 2);
+
+        // 6. Subir el archivo modificado
+        await drive.files.update({
+            fileId: fileJsonPasado,
+            media: {
+                mimeType: 'application/json',
+                body: jsonModificado,
+            },
+            fields: 'id'
+        });
+
+        console.log('Registro agregado exitosamente.');
+    } catch (error) {
+        console.error('Error al procesar el archivo JSON:', error.message);
+    }
+}
+
+async function obtenerJsonHrefPasados() {
+    try {
+        // 1. Obtener el archivo JSON
+        const response = await drive.files.get({
+            fileId: fileJsonPasado,
+            alt: 'media'
+        });
+
+        // 2. Parsear el contenido a JSON
+        const contenidoActual = JSON.parse(response.data);
+
+        // 3. Verificar que el contenido sea un arreglo
+        if (!Array.isArray(contenidoActual)) {
+            console.error("El contenido del archivo JSON no es un arreglo.");
+            return [];
+        }
+        return contenidoActual;
+    } catch (error) {
+        console.error('Error al procesar el archivo JSON:', error.message);
+    }
+}
+
+
 let intentos = 0;
 let hayError = false;
 async function captureScreenshotAndUpload(folderId, auth, banner1Url, bannerLateralUrl, datePast, device) {
@@ -217,10 +291,10 @@ async function captureScreenshotAndUpload(folderId, auth, banner1Url, bannerLate
             let jsonData;
             try {
                 // Lee el archivo JSON de manera asíncrona
-                 const data = await fsp.readFile('./public/noticias.json', 'utf8');
-                
+                // const data = await fsp.readFile('./public/noticias.json', 'utf8');
                 // Convierte el contenido a un objeto JSON
-                const elements = JSON.parse(data);
+                //const elements = JSON.parse(data);
+                    const elements = await obtenerJsonHrefPasados();
 
                     const isDateEqual = (urlString, dateToCompare) => {
                         // Expresión regular para coincidir con fechas en formato YYYY/MM/DD
@@ -274,6 +348,7 @@ async function captureScreenshotAndUpload(folderId, auth, banner1Url, bannerLate
         }
         if(currentHref){
             console.log("sigue");
+            await agregarHrefJson({href: currentHref});
 
             console.log(currentHref);
             //await saveCurrentHref(currentHref);
