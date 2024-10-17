@@ -188,6 +188,8 @@ const device_celular = {
 // Función para procesar el archivo JSON
 async function agregarHrefJson(hrefJson) {
     try {
+        const drive = google.drive({ version: 'v3', auth });
+
         // 1. Obtener el archivo JSON
         const response = await drive.files.get({
             fileId: fileJsonPasado,
@@ -233,6 +235,8 @@ async function agregarHrefJson(hrefJson) {
 
 async function obtenerJsonHrefPasados() {
     try {
+        const drive = google.drive({ version: 'v3', auth });
+
         // 1. Obtener el archivo JSON
         const response = await drive.files.get({
             fileId: fileJsonPasado,
