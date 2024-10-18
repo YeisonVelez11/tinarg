@@ -80,9 +80,14 @@ async function authorize() {
     await jwtClient.authorize();
     console.log('Successfully connected to Google Drive API.');
     return jwtClient;
+
 }
 let auth;
-
+/*(async()=>{
+    auth = await authorize();
+    await obtenerJsonHrefPasados();
+    agregarHrefJson();
+})()*/
 
 async function listFolders(auth, parentId) {
     const drive = google.drive({ version: 'v3', auth });
@@ -197,8 +202,12 @@ async function agregarHrefJson(hrefJson) {
         });
 
         // 2. Parsear el contenido a JSON
-        const contenidoActual = JSON.parse(response.data);
-
+        let contenidoActual;
+        if (typeof response.data === 'string') {
+            contenidoActual = JSON.parse(response.data);
+        } else {
+            contenidoActual = response.data; // asumiendo que ya es un objeto
+        }
         // 3. Verificar que el contenido sea un arreglo
         if (!Array.isArray(contenidoActual)) {
             console.error("El contenido del archivo JSON no es un arreglo.");
@@ -232,7 +241,6 @@ async function agregarHrefJson(hrefJson) {
         console.error('Error al procesar el archivo JSON:', error.message);
     }
 }
-
 async function obtenerJsonHrefPasados() {
     try {
         const drive = google.drive({ version: 'v3', auth });
@@ -243,8 +251,12 @@ async function obtenerJsonHrefPasados() {
             alt: 'media'
         });
 
-        // 2. Parsear el contenido a JSON
-        const contenidoActual = JSON.parse(response.data);
+        let contenidoActual;
+        if (typeof response.data === 'string') {
+            contenidoActual = JSON.parse(response.data);
+        } else {
+            contenidoActual = response.data; // asumiendo que ya es un objeto
+        }
 
         // 3. Verificar que el contenido sea un arreglo
         if (!Array.isArray(contenidoActual)) {
