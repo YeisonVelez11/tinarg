@@ -365,7 +365,11 @@ async function captureScreenshotAndUpload(folderId, auth, banner1Url, bannerLate
         if(currentHref){
             console.log("sigue");
             await agregarHrefJson({href: currentHref});
-
+            if(!folderId){
+                await page.close();
+                await browser.close();
+                return ;
+            }
             console.log(currentHref);
             //await saveCurrentHref(currentHref);
             console.log("vamos 11");
@@ -482,7 +486,7 @@ async function captureScreenshotAndUpload(folderId, auth, banner1Url, bannerLate
                 intentos = 0;
             }
             else{
-                captureScreenshotAndUpload(folderId, auth, banner1Url, bannerLateralUrl, datePast, device);
+                await captureScreenshotAndUpload(folderId, auth, banner1Url, bannerLateralUrl, datePast, device);
             }
             hayError = false;
         }
@@ -1012,7 +1016,9 @@ app.get('/take-screenshot', async (req, res) => {
 
             }
         }
-
+        if(!range && resultados.length === 0){
+            await axios.post('http://localhost:3000/screenshot', {})
+        }
         res.status(200).json({ message: 'Proceso completado', resultados: resultados });
     } catch (error) {
         res.status(500).json({ message: 'Error en el proceso', error: error.message });
