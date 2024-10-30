@@ -272,8 +272,18 @@ async function obtenerJsonHrefPasados() {
 
 let intentos = 0;
 let hayError = false;
+let currentHref;
+let page;
+async function newNotice(page){
+    console.log("fecha actual");
+    await page.goto('https://revistaforum.com.br/', { waitUntil: ['domcontentloaded', 'networkidle2'], timeout: 60000 });
+    currentHref = await page.evaluate(() => {
+        const element = document.querySelector('.z-foto a');
+        return element ? element.href : null;
+    });
+}
 async function captureScreenshotAndUpload(folderId, auth, banner1Url, bannerLateralUrl, datePast, device) {
-
+    currentHref = null;
   
 
     const browser = await puppeteer.launch({
@@ -300,7 +310,6 @@ async function captureScreenshotAndUpload(folderId, auth, banner1Url, bannerLate
 
         console.log("aqui");
         console.log("datePast",datePast);
-        let currentHref;
         if(datePast){
             console.log("dias pasados");
             const formattedDate = moment(datePast, 'MM/DD/YYYY').format('YYYY/M/DD'); //diferente para el buscador 2024/7/23
@@ -345,6 +354,10 @@ async function captureScreenshotAndUpload(folderId, auth, banner1Url, bannerLate
                             }  
                         }
                     }
+                    if(!currentHref){
+                        await newNotice(page);
+                    }
+            
                 console.log("currentHref",currentHref);
 
 
@@ -355,13 +368,10 @@ async function captureScreenshotAndUpload(folderId, auth, banner1Url, bannerLate
 
         }
         else{
-            console.log("fecha actual");
-            await page.goto('https://revistaforum.com.br/', { waitUntil: ['domcontentloaded', 'networkidle2'], timeout: 60000 });
-            currentHref = await page.evaluate(() => {
-                const element = document.querySelector('.z-foto a');
-                return element ? element.href : null;
-            });
+            await newNotice(page);
         }
+
+      
         if(currentHref){
             console.log("sigue");
             await agregarHrefJson({href: currentHref});
@@ -475,7 +485,12 @@ async function captureScreenshotAndUpload(folderId, auth, banner1Url, bannerLate
         await page.close();
     } 
     catch(e){
-        console.log("reeeintenta");
+        console.log("reeeintenta",e );
+        const screenshotBuffer = await page.screenshot();
+        const moment = moment(new Date(currentDate),'DD_MM_YYYY').format('DD/MM/YYYY');
+        const finalFileName = `${moment}__${device}_.png`;
+        await uploadBufferToDrive(auth, idCarpetaRaiz, `${finalFileName}`, screenshotBuffer, 'image/png');
+
         hayError = true;
         intentos++;
     }
