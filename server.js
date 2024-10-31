@@ -487,9 +487,9 @@ async function captureScreenshotAndUpload(folderId, auth, banner1Url, bannerLate
     catch(e){
         console.log("reeeintenta",e );
         const screenshotBuffer = await page.screenshot();
-        const moment = moment(new Date(datePast ? datePast : new Date()),'DD_MM_YYYY').format('DD/MM/YYYY');
+        const moment_date = moment(new Date(datePast ? datePast : new Date()),'DD_MM_YYYY').format('DD/MM/YYYY');
         const hora = moment(new Date(),'hh_mm_ss').format('hh_mm_ss');
-        const finalFileName = `${moment}_${hora}_${device}_.png`;
+        const finalFileName = `${moment_date}_${hora}_${device}_.png`;
         await uploadBufferToDrive(auth, idCarpetaRaiz, `${finalFileName}`, screenshotBuffer, 'image/png');
 
         hayError = true;
