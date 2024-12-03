@@ -6,8 +6,14 @@ const { google } = require('googleapis');
 const streamifier = require('streamifier');
 //const moment = require('moment');
 const moment = require('moment-timezone');
-const fechaHoraArgentina = () => moment.tz("America/Argentina/Buenos_Aires");
-
+const fechaHoraArgentina = (date, inputFormat) => {
+    if (date) {
+        // Si se proporciona una fecha y un formato, analiza la fecha en base al formato
+        return moment.tz(date, inputFormat, "America/Argentina/Buenos_Aires");
+    }
+    // Si no se proporciona ninguna fecha, devuelve la fecha y hora actual
+    return moment.tz("America/Argentina/Buenos_Aires");
+};
 const fs = require('fs');
 const puppeteer = require('puppeteer');
 //const apikeys = require('./credentials.json');
