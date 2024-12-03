@@ -937,8 +937,7 @@ app.post('/screenshot', async (req, res) => {
 });
 
 app.get('/start', async (req, res) => {
-    console.log("start");
-    console.log();
+    console.log("start",fechaHoraArgentina(new Date(),'hh_mm_ss').format('hh_mm_ss'));
     res.send(fechaHoraArgentina(new Date(),'hh_mm_ss').format('hh_mm_ss'));
 
 });
