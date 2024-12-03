@@ -6,7 +6,7 @@ const { google } = require('googleapis');
 const streamifier = require('streamifier');
 //const moment = require('moment');
 const moment = require('moment-timezone');
-const fechaHoraArgentina = moment.tz("America/Argentina/Buenos_Aires");
+const fechaHoraArgentina = () => moment.tz("America/Argentina/Buenos_Aires");
 
 const fs = require('fs');
 const puppeteer = require('puppeteer');
