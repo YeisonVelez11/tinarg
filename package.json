@@ -23,5 +23,6 @@
     "puppeteer": "^19.7.2",
     "readline-sync": "^1.4.10",
     "streamifier": "^0.1.1"
+    
   }
 }
