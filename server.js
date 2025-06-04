@@ -399,13 +399,15 @@ async function captureScreenshotAndUpload(folderId, auth, banner1Url, bannerLate
             console.log("navegando a la url de la noticia");
             try {
                 try {
+                    console.log("1 intento navegando a la url de la noticia");
                     await page.goto(currentHref, { waitUntil: ['domcontentloaded', 'networkidle2'], timeout: 120000 }); // Increased timeout to 120s
                 } catch (error) {
-                    console.error("Navigation timeout or error, retrying with less strict waitUntil...", error.message);
+                    console.log("Navigation timeout or error, retrying with less strict waitUntil...", error.message);
                     try {
+                        console.log("2 intento navegando a la url de la noticia");
                         await page.goto(currentHref, { waitUntil: 'domcontentloaded', timeout: 120000 });
                     } catch (err) {
-                        console.error("Second navigation attempt failed:", err.message);
+                        console.log("Second navigation attempt failed:", err.message);
                         throw err; // Let the outer try/catch handle this
                     }
                 }
