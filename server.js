@@ -396,9 +396,19 @@ async function captureScreenshotAndUpload(folderId, auth, banner1Url, bannerLate
             }
             console.log(currentHref);
             //await saveCurrentHref(currentHref);
-            console.log("vamos 11");
+            console.log("navegando a la url de la noticia");
             try {
-                await page.goto(currentHref, { waitUntil: ['domcontentloaded', 'networkidle2'], timeout: 60000 });
+                try {
+                    await page.goto(currentHref, { waitUntil: ['domcontentloaded', 'networkidle2'], timeout: 120000 }); // Increased timeout to 120s
+                } catch (error) {
+                    console.error("Navigation timeout or error, retrying with less strict waitUntil...", error.message);
+                    try {
+                        await page.goto(currentHref, { waitUntil: 'domcontentloaded', timeout: 120000 });
+                    } catch (err) {
+                        console.error("Second navigation attempt failed:", err.message);
+                        throw err; // Let the outer try/catch handle this
+                    }
+                }
                 //await waitFor(5000);
 
                 if(device !== 'celular'){
@@ -441,6 +451,25 @@ async function captureScreenshotAndUpload(folderId, auth, banner1Url, bannerLate
             console.log("vamos 133");
     
             await page.evaluate((device) => {
+
+                document.querySelectorAll('iframe').forEach(iframe => {
+                    iframe.remove();
+                });
+                
+                // Remove all swg-popup-background elements
+                document.querySelectorAll('swg-popup-background').forEach(popup => {
+                    popup.remove();
+                });
+          
+                document.querySelectorAll('ins').forEach(popup => {
+                    popup.remove();
+                });
+
+                document.querySelectorAll('div[data-open-link-in-same-page]').forEach(popup => {
+                    popup.remove();
+                });
+                
+
                 const adds = document.querySelectorAll(".content-banner.hidden-m");
                 adds.forEach(add => add.style.opacity = 0);
 
