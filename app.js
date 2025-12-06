@@ -5,7 +5,7 @@ const { createCanvas, loadImage, registerFont } = require('canvas');
 const express = require('express');
 const multer = require('multer');
 const app = express();
-const port = 3000;
+const port = 3001;
 
 
 // Registrar la fuente

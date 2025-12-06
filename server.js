@@ -72,7 +72,7 @@ function formatDateFromHref(href) {
 
 
 const app = express();
-const port = 3000;
+const port = 3001;
 const storage = multer.memoryStorage();
 const upload = multer({ storage: storage });
 
@@ -396,9 +396,21 @@ async function captureScreenshotAndUpload(folderId, auth, banner1Url, bannerLate
             }
             console.log(currentHref);
             //await saveCurrentHref(currentHref);
-            console.log("vamos 11");
+            console.log("navegando a la url de la noticia");
             try {
-                await page.goto(currentHref, { waitUntil: ['domcontentloaded', 'networkidle2'], timeout: 60000 });
+                try {
+                    console.log("1 intento navegando a la url de la noticia");
+                    await page.goto(currentHref, { waitUntil: ['domcontentloaded', 'networkidle2'], timeout: 120000 }); // Increased timeout to 120s
+                } catch (error) {
+                    console.log("Navigation timeout or error, retrying with less strict waitUntil...", error.message);
+                    try {
+                        console.log("2 intento navegando a la url de la noticia");
+                        await page.goto(currentHref, { waitUntil: 'domcontentloaded', timeout: 120000 });
+                    } catch (err) {
+                        console.log("Second navigation attempt failed:", err.message);
+                        throw err; // Let the outer try/catch handle this
+                    }
+                }
                 //await waitFor(5000);
 
                 if(device !== 'celular'){
@@ -441,6 +453,25 @@ async function captureScreenshotAndUpload(folderId, auth, banner1Url, bannerLate
             console.log("vamos 133");
     
             await page.evaluate((device) => {
+
+                document.querySelectorAll('iframe').forEach(iframe => {
+                    iframe.remove();
+                });
+                
+                // Remove all swg-popup-background elements
+                document.querySelectorAll('swg-popup-background').forEach(popup => {
+                    popup.remove();
+                });
+          
+                document.querySelectorAll('ins').forEach(popup => {
+                    popup.remove();
+                });
+
+                document.querySelectorAll('div[data-open-link-in-same-page]').forEach(popup => {
+                    popup.remove();
+                });
+                
+
                 const adds = document.querySelectorAll(".content-banner.hidden-m");
                 adds.forEach(add => add.style.opacity = 0);
 
@@ -798,7 +829,7 @@ app.post('/upload', upload.fields([{ name: 'banner1' }, { name: 'banner_lateral'
         try {
             console.log(dateRange, "dateRange",  "es antes de hoy", isPastDays);
             if(isPastDays){
-               await axios.get(`http://localhost:3000/take-screenshot?range=${dateRange}`);
+               await axios.get(`http://localhost:3001/take-screenshot?range=${dateRange}`);
             }
         }
         catch (e){
@@ -986,7 +1017,7 @@ app.get('/take-screenshot', async (req, res) => {
             console.log(isDateRangeBeforeToday(range));
         }
         console.log("json-by-dates");
-        const response = await axios.post('http://localhost:3000/json-by-dates', {
+        const response = await axios.post('http://localhost:3001/json-by-dates', {
             dateRange: range && isDateRangeBeforeToday(range) ? range : obtenerFechaActual() 
         });
 
@@ -1034,8 +1065,8 @@ app.get('/take-screenshot', async (req, res) => {
                     object.datePast=date.fecha;
                 }
                 if(object.banner1 || object.banner_costado){
-                    console.log("http://localhost:3000/screenshot");
-                    const screen = await axios.post('http://localhost:3000/screenshot', object);
+                    console.log("http://localhost:3001/screenshot");
+                    const screen = await axios.post('http://localhost:3001/screenshot', object);
                     console.log(screen.data);
                 }
                 
@@ -1043,7 +1074,7 @@ app.get('/take-screenshot', async (req, res) => {
             }
         }
         if(!range && resultados.length === 0){
-            await axios.post('http://localhost:3000/screenshot', {})
+            await axios.post('http://localhost:3001/screenshot', {})
         }
         res.status(200).json({ message: 'Proceso completado', resultados: resultados });
     } catch (error) {

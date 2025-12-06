@@ -15,13 +15,13 @@ function obtenerFechaActual() {
 
 
 (async()=>{
-    const response = await axios.post('http://localhost:3000/json-by-dates', {
+    const response = await axios.post('http://localhost:3001/json-by-dates', {
         dateRange: obtenerFechaActual()
     });
     console.log(response.data);
     for (let date of response.data){
         console.log(date);
-        const screen = await axios.post('http://localhost:3000/screenshot', {
+        const screen = await axios.post('http://localhost:3001/screenshot', {
             folderId: date.folder,
             banner1:date.banner,
             banner_costado:date.banner_lateral
