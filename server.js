@@ -673,13 +673,13 @@ async function processImage(screenshotBuffer, href, banner1Url, bannerLateralUrl
     // Cargar bar.png en la parte superior
 
     if (device !== 'celular'){
-        barImage = await loadImage('./public/images/banners/bar.png');
+        barImage = await loadImage(path.join(__dirname, 'public', 'images', 'banners', 'bar.png'));
 
     }
     else{
         console.log("banner celular");
 
-        barImage = await loadImage('./public/images/banners/banner_mobile.png');
+        barImage = await loadImage(path.join(__dirname, 'public', 'images', 'banners', 'banner_mobile.png'));
     }
 
 
@@ -714,7 +714,7 @@ async function processImage(screenshotBuffer, href, banner1Url, bannerLateralUrl
         ctx.fillStyle = 'white';
         ctx.fillText(formattedDate, canvasWidth - 90 , 16);
 
-        const x = await loadImage('./public/images/banners/x.jpg'); // Otra URL pública
+        const x = await loadImage(path.join(__dirname, 'public', 'images', 'banners', 'x.jpg')); // Otra URL pública
         ctx.drawImage(x, canvasWidth - 30, canvasHeight - 132); // Ajustar posición
     }
     else{
