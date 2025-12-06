@@ -81,7 +81,7 @@ app.set('views', path.join(__dirname, 'views'));
 app.use(express.static('public'));
 app.use(express.urlencoded({ extended: true }));
 app.use(express.json());
-require('dotenv').config(); // Cargar variables de entorno
+require('dotenv').config({ path: require('path').join(__dirname, '.env') });; // Cargar variables de entorno
 
 async function authorize() {
     const jwtClient = new google.auth.JWT(
