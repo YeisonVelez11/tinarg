@@ -44,6 +44,26 @@ registerFont(path.join(__dirname, "public",'fonts', 'HelveticaNeue.ttf'), { fami
 registerFont(path.join(__dirname, "public", 'fonts', 'SanFrancisco.ttf'), { family: 'San Francisco' });
 const storageFilePath = path.join(__dirname, 'storage.txt');
 
+function logServerError(context, error, extraData) {
+    try {
+        const logEntry = {
+            timestamp: new Date().toISOString(),
+            context,
+            message: error && error.message ? error.message : String(error),
+            stack: error && error.stack ? error.stack : null,
+            extra: extraData || null,
+        };
+        const line = JSON.stringify(logEntry) + '\n';
+        fs.appendFile(path.join(__dirname, 'server-errors.log'), line, appendErr => {
+            if (appendErr) {
+                console.error('Error escribiendo en server-errors.log:', appendErr.message);
+            }
+        });
+    } catch (e) {
+        console.error('Error en logServerError:', e.message);
+    }
+}
+
 async function getPreviousHref() {
     if (fs.existsSync(storageFilePath)) {
         return fs.readFileSync(storageFilePath, 'utf-8');
@@ -198,6 +218,30 @@ async function uploadFileToDrive(auth, folderId, fileName, fileBuffer, mimeType)
 async function waitFor(ms) {
     return new Promise(resolve => setTimeout(resolve, ms));
 }
+async function waitForAllImages(page) {
+    await page.evaluate(() => {
+        const pendingImages = Array.from(document.images).filter(img => !img.complete);
+
+        if (pendingImages.length === 0) {
+            return;
+        }
+
+        const loadPromise = Promise.all(
+            pendingImages.map(img => new Promise(resolve => {
+                img.addEventListener('load', resolve, { once: true });
+                img.addEventListener('error', resolve, { once: true });
+            }))
+        );
+
+        const timeoutPromise = new Promise(resolve => {
+            setTimeout(() => {
+                resolve();
+            }, 30000);
+        });
+
+        return Promise.race([loadPromise, timeoutPromise]);
+    });
+}
 const device_celular = {
     width:355,
     height:667
@@ -290,7 +334,9 @@ let currentHref;
 let page;
 async function newNotice(page){
     console.log("fecha actual");
-    await page.goto('https://revistaforum.com.br/', { waitUntil: ['domcontentloaded', 'networkidle2'], timeout: 60000 });
+    await page.goto('https://revistaforum.com.br/', { waitUntil: ['domcontentloaded', 'networkidle2'], timeout: 120000 });
+    await waitForAllImages(page);
+    await waitFor(2000);
     currentHref = await page.evaluate(() => {
         const element = document.querySelector('.z-foto a');
         return element ? element.href : null;
@@ -298,28 +344,29 @@ async function newNotice(page){
 }
 async function captureScreenshotAndUpload(folderId, auth, banner1Url, bannerLateralUrl, datePast, device) {
     currentHref = null;
-  
-
-    const browser = await puppeteer.launch({
-        args: [
-          "--disable-setuid-sandbox",
-          "--no-sandbox",
-          "--single-process",
-          "--no-zygote",
-        ],
-        headless: "true",
-        executablePath:
-          process.env.NODE_ENV === "production"
-            ? process.env.PUPPETEER_EXECUTABLE_PATH
-            : puppeteer.executablePath(),
-      });
- 
-
-
-    const page = await browser.newPage();
-    page.on('console', msg => console.log('PAGE LOG:', msg.text()));
+    let browser;
+    let page;
 
     try {
+        browser = await puppeteer.launch({
+            args: [
+              "--disable-setuid-sandbox",
+              "--no-sandbox",
+              "--single-process",
+              "--no-zygote",
+            ],
+            headless: "true",
+            executablePath:
+              process.env.NODE_ENV === "production"
+                ? process.env.PUPPETEER_EXECUTABLE_PATH
+                : puppeteer.executablePath(),
+          });
+
+
+
+        page = await browser.newPage();
+        page.on('console', msg => console.log('PAGE LOG:', msg.text()));
+
         hayError = false;
 
         console.log("aqui");
@@ -370,6 +417,8 @@ async function captureScreenshotAndUpload(folderId, auth, banner1Url, bannerLate
                     }
                     if(!currentHref){
                         await newNotice(page);
+                        await waitForAllImages(page);
+                        await waitFor(2000);
                     }
             
                 console.log("currentHref",currentHref);
@@ -383,6 +432,8 @@ async function captureScreenshotAndUpload(folderId, auth, banner1Url, bannerLate
         }
         else{
             await newNotice(page);
+            await waitForAllImages(page);
+            await waitFor(2000);
         }
 
       
@@ -400,17 +451,19 @@ async function captureScreenshotAndUpload(folderId, auth, banner1Url, bannerLate
             try {
                 try {
                     console.log("1 intento navegando a la url de la noticia");
-                    await page.goto(currentHref, { waitUntil: ['domcontentloaded', 'networkidle2'], timeout: 120000 }); // Increased timeout to 120s
+                    await page.goto(currentHref, { waitUntil: ['domcontentloaded', 'networkidle2'], timeout: 180000 }); // Increased timeout to 180s
                 } catch (error) {
                     console.log("Navigation timeout or error, retrying with less strict waitUntil...", error.message);
                     try {
                         console.log("2 intento navegando a la url de la noticia");
-                        await page.goto(currentHref, { waitUntil: 'domcontentloaded', timeout: 120000 });
+                        await page.goto(currentHref, { waitUntil: 'domcontentloaded', timeout: 180000 });
                     } catch (err) {
                         console.log("Second navigation attempt failed:", err.message);
                         throw err; // Let the outer try/catch handle this
                     }
                 }
+                await waitForAllImages(page);
+                await waitFor(2000);
                 //await waitFor(5000);
 
                 if(device !== 'celular'){
@@ -527,10 +580,15 @@ async function captureScreenshotAndUpload(folderId, auth, banner1Url, bannerLate
             console.log("no se obtuvo el href",currentHref);
         }
         intentos = 0;
-        await page.close();
     } 
     catch(e){
         console.log("reeeintenta",e );
+        logServerError('captureScreenshotAndUpload', e, {
+            folderId,
+            datePast,
+            device,
+            currentHref,
+        });
         const screenshotBuffer = await page.screenshot();
         const moment_date = momentArgentina(new Date(datePast ? datePast : new Date()),'DD_MM_YYYY').format('DD/MM/YYYY');
         const hora = momentArgentina(new Date(),'hh_mm_ss').format('hh_mm_ss');
@@ -541,7 +599,23 @@ async function captureScreenshotAndUpload(folderId, auth, banner1Url, bannerLate
         intentos++;
     }
     finally {
-        await browser.close();
+        if (browser) {
+            try {
+                const pages = await browser.pages();
+                await Promise.all(pages.map(p => p.close().catch(err => console.log('Error cerrando página:', err.message))));
+                await browser.close();
+            } catch (closeError) {
+                console.warn('Error al cerrar browser:', closeError.message);
+                try {
+                    const browserProcess = browser.process && browser.process();
+                    if (browserProcess) {
+                        browserProcess.kill('SIGKILL');
+                    }
+                } catch (killError) {
+                    console.warn('Error al forzar cierre del browser:', killError.message);
+                }
+            }
+        }
         if(hayError && intentos <= 3){
             if(intentos === 3){
                 intentos = 0;
