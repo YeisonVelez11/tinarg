@@ -389,7 +389,7 @@ let page;
               "--single-process",
               "--no-zygote",
             ],
-            headless: false,
+            headless: true,
             executablePath:
               process.env.NODE_ENV === "production"
                 ? process.env.PUPPETEER_EXECUTABLE_PATH
@@ -535,7 +535,7 @@ let page;
             }
             else{
                 
-                await page.setViewport({ width: 1592, height: 790 });
+                await page.setViewport({ width: 1592, height: 1010 });
             }
         
 
@@ -549,6 +549,14 @@ let page;
                 const { loadImage } = require('canvas');
                 const banner1Image = await loadImage(banner1Url);
                 banner1Height = banner1Image.height;
+            }
+
+            // Obtener la altura del banner lateral antes del page.evaluate
+            let bannerLateralHeight = 0;
+            if(bannerLateralUrl && device !== 'celular'){
+                const { loadImage } = require('canvas');
+                const bannerLateralImage = await loadImage(bannerLateralUrl);
+                bannerLateralHeight = bannerLateralImage.height;
             }
 
             // Obtener la posición del elemento .current para calcular el margin-top del sidebar
@@ -565,7 +573,7 @@ let page;
                 }
             }
 
-            await page.evaluate((device, banner1Height, sidebarMarginTop) => {
+            await page.evaluate((device, banner1Height, sidebarMarginTop, bannerLateralHeight) => {
 
                     document.querySelectorAll('iframe')?.forEach(iframe => {
                         iframe.remove();
@@ -598,16 +606,28 @@ let page;
                 if(device !== "celular"){
 
                     console.log("banner1Height",banner1Height);
+                    console.log("bannerLateralHeight",bannerLateralHeight);
                     const border = 20;
-                    const margin = 30;
-                    document.querySelector("header.header").style["margin-bottom"] = (banner1Height + border + margin) + "px";
-                    const side = document.querySelector(".s-sidebar__list h3");
+                    const margin = 40;
+                    const marginBottomHeader = (banner1Height  + margin);
+                    console.log("marginBottomHeader",marginBottomHeader);
+                    const sidebarMarginTopValue = (bannerLateralHeight) + marginBottomHeader + 38  ;
+                    console.log("sidebarMarginTopValue",sidebarMarginTopValue);
+                    document.querySelector(".s-heading").style["margin-top"] = marginBottomHeader +  "px";
+                    // document.querySelector(".s-sidebar h3").style["margin-top"] = "0px";
+                    // document.querySelector(".s-sidebar__list").style["margin-top"] = "0px";
+                    document.querySelector("#lateral1,#lateral2").remove();
+                    document.querySelectorAll["[data-google-query-id]"]?.forEach(google => google.remove()); 
+                    const side = document.querySelector(".s-sidebar.wrapper");
                     //si no hay publicidades movemos el titulo hacia abajo para poner el banner
                     if(side){
-                        console.log("sidebarMarginTop",sidebarMarginTop);
-                        side.style["margin-top"] = sidebarMarginTop + "px";
+                        side.style["margin-top"] = sidebarMarginTopValue + "px"; 
+                        // side.style["position"] = "absolute";
+                        //  side.style["left"] = "0";
+
                     }
-                    document.querySelector(".posts").style.opacity = 0;
+                    
+                    //document.querySelector(".posts").style.opacity = 0;
                 }
 
                 const adds2 = document.querySelectorAll(".content-banner");
@@ -620,7 +640,12 @@ let page;
                     document.querySelector(".s-heading__img img").style.opacity = 0;
                 }
                
-            },device, banner1Height, sidebarMarginTop);
+            },device, banner1Height, sidebarMarginTop, bannerLateralHeight);
+            
+            // // Pausa de 2 minutos después de aplicar los estilos
+            // console.log("Iniciando pausa de 2 minutos...");ß
+            // await waitFor(120000);
+            // console.log("Pausa completada");
             console.log("vamos 1");
             await waitFor(6000);
 
@@ -712,7 +737,7 @@ async function processImage(screenshotBuffer, href, banner1Url, bannerLateralUrl
     }
     else{
         canvasWidth = 1592;
-        canvasHeight = 790;
+        canvasHeight = 1010;
     }
 
 
@@ -766,16 +791,17 @@ async function processImage(screenshotBuffer, href, banner1Url, bannerLateralUrl
         const banner1Image = await loadImage(banner1Url); // Una URL pública
 
         if (device !== 'celular'){
-            const MARGIN = 30;
+            const MARGIN = 40;
             const ALTURA_BANNER = 123;
-            ctx.drawImage(banner1Image, (canvasWidth - banner1Image.width) / 2, (ALTURA_BANNER + MARGIN)); // Centrado
+            const alturaBarChrome = 89;
+            ctx.drawImage(banner1Image, (canvasWidth - banner1Image.width) / 2, (ALTURA_BANNER + MARGIN + alturaBarChrome)); // Centrado
     
         }
         else{
             const paddingX = 100;
             const paddingY = 13;
             const bannerX = (canvasWidth - banner1Image.width) / 2;
-            const bannerY = canvasHeight - 100;
+            const bannerY = canvasHeight - banner1Image.height;
             const borderX = Math.max(bannerX - paddingX, 0);
             const borderY = Math.max(bannerY - paddingY, 0);
             const borderWidth = Math.min(banner1Image.width + paddingX * 2, canvasWidth - borderX);
@@ -817,7 +843,15 @@ async function processImage(screenshotBuffer, href, banner1Url, bannerLateralUrl
         ctx.fillText(formattedDate, canvasWidth - 90 , 16);
 
         const x = await loadImage(path.join(__dirname, 'public', 'images', 'banners', 'x.jpg')); // Otra URL pública
-        ctx.drawImage(x, canvasWidth - 30, canvasHeight - 132); // Ajustar posición
+        
+        // Obtener altura del banner lateral si existe
+        let bannerlHeightForX = 0;
+        if(banner1Url){
+            const bannerTemp = await loadImage(banner1Url);
+            bannerlHeightForX = bannerTemp.height;
+        }
+        const alturaX = 32;
+        ctx.drawImage(x, canvasWidth - 30, (canvasHeight - (bannerlHeightForX + alturaX))); // Ajustar posición restando altura del banner lateral
     }
     else{
         ctx.font = 'bold 14px "Helvetica Neue", Arial, sans-serif';
