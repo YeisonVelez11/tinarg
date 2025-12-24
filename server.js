@@ -242,6 +242,36 @@ async function waitForAllImages(page) {
         return Promise.race([loadPromise, timeoutPromise]);
     });
 }
+function buildUrlWithCurrentDate(originalHref) {
+    if (!originalHref) {
+        return null;
+    }
+    try {
+        const parsedUrl = new URL(originalHref);
+        const segments = parsedUrl.pathname.split('/').filter(Boolean);
+        if (segments.length < 2) {
+            return null;
+        }
+        const section = segments[0];
+        const slug = segments[segments.length - 1];
+        const formattedDate = momentArgentina().format('YYYY/MM/DD');
+        return `${parsedUrl.origin}/${section}/${formattedDate}/${slug}/`;
+    } catch (error) {
+        console.error('Error al transformar la URL:', error.message);
+        return null;
+    }
+}
+function removeDateSegmentFromHref(href) {
+    if (!href) {
+        return href;
+    }
+    try {
+        return href.replace(/\/\d{4}\/\d{1,2}\/\d{1,2}(?=\/)/, '');
+    } catch (error) {
+        console.error('Error al limpiar la fecha de la URL:', error.message);
+        return href;
+    }
+}
 const device_celular = {
     width:355,
     height:667
@@ -338,14 +368,18 @@ async function newNotice(page){
     await waitForAllImages(page);
     await waitFor(2000);
     currentHref = await page.evaluate(() => {
-        const element = document.querySelector('.z-foto a');
+        const element = document.querySelector('.h-heading__main a');
         return element ? element.href : null;
     });
+    const newUrl = buildUrlWithCurrentDate(currentHref);
+    if (newUrl) {
+        currentHref = newUrl;
+    }
 }
 async function captureScreenshotAndUpload(folderId, auth, banner1Url, bannerLateralUrl, datePast, device) {
-    currentHref = null;
-    let browser;
-    let page;
+currentHref = null;
+let browser;
+let page;
 
     try {
         browser = await puppeteer.launch({
@@ -355,7 +389,7 @@ async function captureScreenshotAndUpload(folderId, auth, banner1Url, bannerLate
               "--single-process",
               "--no-zygote",
             ],
-            headless: "true",
+            headless: false,
             executablePath:
               process.env.NODE_ENV === "production"
                 ? process.env.PUPPETEER_EXECUTABLE_PATH
@@ -409,7 +443,7 @@ async function captureScreenshotAndUpload(folderId, auth, banner1Url, bannerLate
                     if(elements.length > 0){
                         for(let element of elements){
                             if(element && isDateEqual(element.href, formattedDate)){
-                                currentHref = element.href;
+                                currentHref = removeDateSegmentFromHref(element.href);
                                 console.log("encontrada fecha");
                                 break;
                             }  
@@ -450,13 +484,17 @@ async function captureScreenshotAndUpload(folderId, auth, banner1Url, bannerLate
             console.log("navegando a la url de la noticia");
             try {
                 try {
-                    console.log("1 intento navegando a la url de la noticia");
-                    await page.goto(currentHref, { waitUntil: ['domcontentloaded', 'networkidle2'], timeout: 180000 }); // Increased timeout to 180s
+                    console.log("1 intento navegando a la url de la noticia", currentHref);
+                    await page.goto(currentHref, { waitUntil: 'domcontentloaded', timeout: 60000 }); // Reduced timeout to 60s
+                    console.log("va");
+                    await waitFor(3000); // Esperar 3 segundos para que carguen recursos adicionales
+
                 } catch (error) {
-                    console.log("Navigation timeout or error, retrying with less strict waitUntil...", error.message);
+                    console.log("Navigation timeout or error, retrying...", error.message);
                     try {
                         console.log("2 intento navegando a la url de la noticia");
-                        await page.goto(currentHref, { waitUntil: 'domcontentloaded', timeout: 180000 });
+                        await page.goto(currentHref, { waitUntil: 'load', timeout: 60000 });
+                        await waitFor(3000);
                     } catch (err) {
                         console.log("Second navigation attempt failed:", err.message);
                         throw err; // Let the outer try/catch handle this
@@ -497,7 +535,7 @@ async function captureScreenshotAndUpload(folderId, auth, banner1Url, bannerLate
             }
             else{
                 
-                await page.setViewport({ width: 1592, height: 900 });
+                await page.setViewport({ width: 1592, height: 790 });
             }
         
 
@@ -505,55 +543,91 @@ async function captureScreenshotAndUpload(folderId, auth, banner1Url, bannerLate
 //            await waitFor(60000);
             console.log("vamos 133");
     
-            await page.evaluate((device) => {
+            // Obtener la altura del banner1 antes del page.evaluate
+            let banner1Height = 0;
+            if(banner1Url){
+                const { loadImage } = require('canvas');
+                const banner1Image = await loadImage(banner1Url);
+                banner1Height = banner1Image.height;
+            }
 
-                document.querySelectorAll('iframe').forEach(iframe => {
-                    iframe.remove();
+            // Obtener la posición del elemento .current para calcular el margin-top del sidebar
+            let sidebarMarginTop = 200; // valor por defecto
+            if(bannerLateralUrl && device !== 'celular'){
+                const currentPosition = await page.evaluate(() => {
+                    const element = document.querySelector('.current');
+                    if (!element) return null;
+                    const rect = element.getBoundingClientRect();
+                    return rect.top;
                 });
-                
-                // Remove all swg-popup-background elements
-                document.querySelectorAll('swg-popup-background').forEach(popup => {
-                    popup.remove();
-                });
-          
-                document.querySelectorAll('ins').forEach(popup => {
-                    popup.remove();
-                });
+                if(currentPosition !== null){
+                    sidebarMarginTop = currentPosition - 230 ;
+                }
+            }
 
-                document.querySelectorAll('div[data-open-link-in-same-page]').forEach(popup => {
-                    popup.remove();
-                });
-                
+            await page.evaluate((device, banner1Height, sidebarMarginTop) => {
 
-                const adds = document.querySelectorAll(".content-banner.hidden-m");
-                adds.forEach(add => add.style.opacity = 0);
+                    document.querySelectorAll('iframe')?.forEach(iframe => {
+                        iframe.remove();
+                    });
+                    
+                    // Remove all swg-popup-background elements
+                    document.querySelectorAll('swg-popup-background')?.forEach(popup => {
+                        popup.remove();
+                    });
+            
+                    document.querySelectorAll('ins')?.forEach(popup => {
+                        popup.remove();
+                    });
 
-                if(adds.length === 0 && device !== "celular"){
-                    const header = document.querySelector(".main-article--header");
+                    document.querySelectorAll('div[data-open-link-in-same-page]')?.forEach(popup => {
+                        popup.remove();
+                    });
+                    
+                    document.querySelectorAll('.ad')?.forEach(popup => {
+                        popup.remove();
+                    });  
+                    
+                    document.querySelector('#tbl-next-up-inner')?.remove();
+                    document.querySelector('#tbl-next-up')?.remove();
+                    document.querySelector('[data-id="prompt"]')?.remove();
+
+                    const adds = document.querySelectorAll(".content-banner.hidden-m");
+                    adds?.forEach(add => add.style.opacity = 0);
+
+                if(device !== "celular"){
+
+                    console.log("banner1Height",banner1Height);
+                    const border = 20;
+                    const margin = 30;
+                    document.querySelector("header.header").style["margin-bottom"] = (banner1Height + border + margin) + "px";
+                    const side = document.querySelector(".s-sidebar__list h3");
                     //si no hay publicidades movemos el titulo hacia abajo para poner el banner
-                    if(header){
-                        header.style["margin-top"] = "275px";
+                    if(side){
+                        console.log("sidebarMarginTop",sidebarMarginTop);
+                        side.style["margin-top"] = sidebarMarginTop + "px";
                     }
+                    document.querySelector(".posts").style.opacity = 0;
                 }
 
                 const adds2 = document.querySelectorAll(".content-banner");
-                adds2.forEach(add => add.style.opacity = 0);
+                adds2?.forEach(add => add.style.opacity = 0);
 
                 const campana = document.querySelectorAll(".amp-web-push_container");
-                campana.forEach(add => add.style.opacity = 0);
+                campana?.forEach(add => add.style.opacity = 0);
                 //en celular no se debe ver la imagen
                 if(device === 'celular'){
-                    document.querySelector(".main-photo").style.opacity = 0
+                    document.querySelector(".s-heading__img img").style.opacity = 0;
                 }
                
-            },device);
+            },device, banner1Height, sidebarMarginTop);
             console.log("vamos 1");
-            await waitFor(10000);
+            await waitFor(6000);
 
             const screenshotBuffer = await page.screenshot();
             // Procesar la imagen final enviando banner1 y banner_costado
             console.log("dando 10 seg mientras toma imagen");
-            const finalImageBuffer = await processImage(screenshotBuffer, currentHref, banner1Url, bannerLateralUrl, device); // Aquí pasamos las URLs
+            const finalImageBuffer = await processImage(screenshotBuffer, currentHref, banner1Url, bannerLateralUrl, device,page); // Aquí pasamos las URLs
             console.log("vamos 4341");
     
             const dateDetails = formatDateFromHref(currentHref); // Obtén las partes de la fecha
@@ -627,7 +701,7 @@ async function captureScreenshotAndUpload(folderId, auth, banner1Url, bannerLate
         }
     }
 }
-async function processImage(screenshotBuffer, href, banner1Url, bannerLateralUrl, device) {
+async function processImage(screenshotBuffer, href, banner1Url, bannerLateralUrl, device,page) {
     let canvasWidth; 
     let canvasHeight;
     console.log("DEVICE", device);
@@ -638,7 +712,7 @@ async function processImage(screenshotBuffer, href, banner1Url, bannerLateralUrl
     }
     else{
         canvasWidth = 1592;
-        canvasHeight = 900;
+        canvasHeight = 790;
     }
 
 
@@ -692,11 +766,25 @@ async function processImage(screenshotBuffer, href, banner1Url, bannerLateralUrl
         const banner1Image = await loadImage(banner1Url); // Una URL pública
 
         if (device !== 'celular'){
-            ctx.drawImage(banner1Image, (canvasWidth - banner1Image.width) / 2, banner1Image.height <= 100 ? 340 : 270); // Centrado
+            const MARGIN = 30;
+            const ALTURA_BANNER = 123;
+            ctx.drawImage(banner1Image, (canvasWidth - banner1Image.width) / 2, (ALTURA_BANNER + MARGIN)); // Centrado
     
         }
         else{
-            ctx.drawImage(banner1Image, (canvasWidth - banner1Image.width) / 2, canvasHeight - 100); 
+            const paddingX = 100;
+            const paddingY = 13;
+            const bannerX = (canvasWidth - banner1Image.width) / 2;
+            const bannerY = canvasHeight - 100;
+            const borderX = Math.max(bannerX - paddingX, 0);
+            const borderY = Math.max(bannerY - paddingY, 0);
+            const borderWidth = Math.min(banner1Image.width + paddingX * 2, canvasWidth - borderX);
+            const borderHeight = Math.min(banner1Image.height + paddingY * 2, canvasHeight - borderY);
+            const previousFillStyle = ctx.fillStyle;
+            ctx.fillStyle = '#FFFFFF';
+            ctx.fillRect(borderX, borderY, borderWidth, borderHeight);
+            ctx.fillStyle = previousFillStyle;
+            ctx.drawImage(banner1Image, bannerX, bannerY); 
         }
     
 
@@ -704,7 +792,21 @@ async function processImage(screenshotBuffer, href, banner1Url, bannerLateralUrl
 
     if(bannerLateralUrl && device !== 'celular'){
         const bannerLateralImage = await loadImage(bannerLateralUrl); // Otra URL pública
-        ctx.drawImage(bannerLateralImage, canvasWidth - bannerLateralImage.width - 200, 550); // Ajustar posición
+        const currentLateral = await page.evaluate(() => {
+            const element = document.querySelector('.current');
+            const postsElement = document.querySelector('.posts');
+            if (!element) return null;
+            const rect = element.getBoundingClientRect();
+            const postsRect = postsElement ? postsElement.getBoundingClientRect() : null;
+            return { 
+                top: rect.top + window.scrollY, 
+                height: rect.height,
+                postsLeft: postsRect ? postsRect.left : 0
+            };
+        });
+        console.log("currentLateral",currentLateral);
+        // Ajustar la posición sumando el offset del screenshot (89px) y usando la posición left de .posts
+        ctx.drawImage(bannerLateralImage, currentLateral.postsLeft, currentLateral.top + 89);
     }
 
     // Formatear la fecha y dibujarla
@@ -726,29 +828,43 @@ async function processImage(screenshotBuffer, href, banner1Url, bannerLateralUrl
 
 
     // Texto de la URL
-    const urltext = href;
-    ctx.font = "bold 13px 'San Francisco'";
-    ctx.fillStyle = "#333333";
+    const urltext = removeDateSegmentFromHref(href);
+    console.log("urltext",urltext);
+    ctx.font = "14px Arial, sans-serif";
+    ctx.fillStyle = "#5f6368";
     ctx.textBaseline = "middle";
+    ctx.textAlign = "left";
 
     if(device !== 'celular'){
-        const textWidth = ctx.measureText(urltext).width;
+        // Calcular el ancho del texto de referencia para establecer el maxWidth correcto
+        const referenceText = "https://revistaforum.com.br/politica/viviane-barci-esposa-de-moraes-perdeu-muito-mais-acoes";
+        const referenceWidth = ctx.measureText(referenceText).width;
+        console.log("****referenceWidth", referenceWidth);
+        
+        const maxWidth = referenceWidth;
         let displayText = urltext;
+        let textWidth = ctx.measureText(displayText).width;
     
-        if (textWidth > 582) {
-            const ellipsis = "  ...";
+        if (textWidth > maxWidth) {
+            const ellipsis = "...";
             let truncatedText = urltext;
     
-            while (ctx.measureText(truncatedText + ellipsis).width > 582 && truncatedText.length > 0) {
+            // Truncar el texto hasta que quepa con los ellipsis
+            while (ctx.measureText(truncatedText + ellipsis).width > maxWidth && truncatedText.length > 0) {
                 truncatedText = truncatedText.slice(0, -1);
             }
     
             displayText = truncatedText + ellipsis;
+            console.log("****Texto truncado");
         }
-    
+        console.log("****displayText",displayText);
+        console.log("****textWidth", ctx.measureText(displayText).width);
+
         ctx.fillText(displayText, 155, 70);
     }
 
+    console.log("se aplican canvas");
+  
 
     return canvas.toBuffer('image/png');
 }
@@ -901,8 +1017,9 @@ app.post('/upload', upload.fields([{ name: 'banner1' }, { name: 'banner_lateral'
 
 
         try {
-            console.log(dateRange, "dateRange",  "es antes de hoy", isPastDays);
+            console.log("-->",dateRange, "dateRange",  "es antes de hoy", isPastDays);
             if(isPastDays){
+                console.log("isPastDays", isPastDays);
                await axios.get(`http://localhost:3001/take-screenshot?range=${dateRange}`);
             }
         }
