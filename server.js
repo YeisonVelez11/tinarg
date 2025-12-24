@@ -484,6 +484,20 @@ let page;
             }
             console.log(currentHref);
             //await saveCurrentHref(currentHref);
+            
+            // Configurar viewport ANTES de navegar para evitar timeout en setViewport
+            if(device === 'celular'){
+                await page.setViewport({
+                    width: device_celular.width,
+                    height: device_celular.height,
+                    isMobile: true, // Esto simula un dispositivo móvil
+                    hasTouch: true, // Esto simula que el dispositivo tiene pantalla táctil
+                });
+            }
+            else{
+                await page.setViewport({ width: 1592, height: 1010 });
+            }
+            
             console.log("navegando a la url de la noticia");
             try {
                 try {
@@ -526,19 +540,6 @@ let page;
 
             } catch (error) {
                 console.error("Error navegando a la URL:", error);
-            }
-
-            if(device === 'celular'){
-                await page.setViewport({
-                    width: device_celular.width,
-                    height: device_celular.height,
-                    isMobile: true, // Esto simula un dispositivo móvil
-                    hasTouch: true, // Esto simula que el dispositivo tiene pantalla táctil
-                });
-            }
-            else{
-                
-                await page.setViewport({ width: 1592, height: 1010 });
             }
         
 
