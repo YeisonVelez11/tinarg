@@ -75,7 +75,9 @@ async function saveCurrentHref(href) {
 }
 
 function formatDateFromHref(href) {
+    console.log("formatDateFromHref - href recibido:", href);
     const match = href.match(/\/(\d{4})\/(\d{1,2})\/(\d{1,2})\//); // Extraer fecha del href
+    console.log("formatDateFromHref - match:", match);
     if (match) {
         const year = match[1].slice(-2); // Obtener solo los últimos dos dígitos del año
         const month = parseInt(match[2], 10); // Mes entre 1-12 (convertido a número)
@@ -87,6 +89,7 @@ function formatDateFromHref(href) {
             year: year    // El año en formato de 2 dígitos
         };
     }
+    console.log("formatDateFromHref - retornando null");
     return null; // Retornar null si no se encuentra el formato
 }
 
@@ -443,7 +446,7 @@ let page;
                     if(elements.length > 0){
                         for(let element of elements){
                             if(element && isDateEqual(element.href, formattedDate)){
-                                currentHref = removeDateSegmentFromHref(element.href);
+                                currentHref = (element.href);
                                 console.log("encontrada fecha");
                                 break;
                             }  
@@ -485,7 +488,7 @@ let page;
             try {
                 try {
                     console.log("1 intento navegando a la url de la noticia", currentHref);
-                    await page.goto(currentHref, { waitUntil: 'domcontentloaded', timeout: 60000 }); // Reduced timeout to 60s
+                    await page.goto(removeDateSegmentFromHref(currentHref), { waitUntil: 'domcontentloaded', timeout: 60000 }); // Reduced timeout to 60s
                     console.log("va");
                     await waitFor(3000); // Esperar 3 segundos para que carguen recursos adicionales
 
@@ -493,7 +496,7 @@ let page;
                     console.log("Navigation timeout or error, retrying...", error.message);
                     try {
                         console.log("2 intento navegando a la url de la noticia");
-                        await page.goto(currentHref, { waitUntil: 'load', timeout: 60000 });
+                        await page.goto(removeDateSegmentFromHref(currentHref), { waitUntil: 'load', timeout: 60000 });
                         await waitFor(3000);
                     } catch (err) {
                         console.log("Second navigation attempt failed:", err.message);
@@ -618,6 +621,7 @@ let page;
                     // document.querySelector(".s-sidebar__list").style["margin-top"] = "0px";
                     document.querySelector("#lateral1,#lateral2").remove();
                     document.querySelectorAll["[data-google-query-id]"]?.forEach(google => google.remove()); 
+                    document.querySelector(".special-heading")?.remove();
                     const side = document.querySelector(".s-sidebar.wrapper");
                     //si no hay publicidades movemos el titulo hacia abajo para poner el banner
                     if(side){
