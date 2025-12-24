@@ -1,7 +1,7 @@
 const https = require('https');
 
 function callAwakeServer() {
-  const url = 'https://tinarg-1p5l.onrender.com/?no_cargar_jsones_fechas=true';
+  const url = 'https://tinarg-jnrr.onrender.com/?no_cargar_jsones_fechas=true';
 
   console.log(`Llamando a ${url} ...`);
 
