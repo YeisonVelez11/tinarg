@@ -576,7 +576,7 @@ let page;
                     sidebarMarginTop = currentPosition - 230 ;
                 }
             }
-
+        await waitFor(10000);
             await page.evaluate((device, banner1Height, sidebarMarginTop, bannerLateralHeight) => {
 
                     document.querySelectorAll('iframe')?.forEach(iframe => {
