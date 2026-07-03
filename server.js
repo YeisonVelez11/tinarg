@@ -368,22 +368,26 @@ let page;
 async function newNotice(page){
     console.log("fecha actual");
     await page.goto('https://revistaforum.com.br/', { waitUntil: ['domcontentloaded', 'networkidle2'], timeout: 120000 });
+   console.log("sigue con la pagina");
     await waitForAllImages(page);
     await waitFor(2000);
     currentHref = await page.evaluate(() => {
         const element = document.querySelector('.h-heading__main a');
         return element ? element.href : null;
     });
+    console.log("currentHref",currentHref);
     const newUrl = buildUrlWithCurrentDate(currentHref);
     if (newUrl) {
         currentHref = newUrl;
     }
+        console.log("currentHref",currentHref);
+
 }
 async function captureScreenshotAndUpload(folderId, auth, banner1Url, bannerLateralUrl, datePast, device) {
 currentHref = null;
 let browser;
 let page;
-
+    console.log("iniciando puppeter");
     try {
         browser = await puppeteer.launch({
             args: [
@@ -400,8 +404,11 @@ let page;
           });
 
 
+              console.log("paso puppeter");
 
         page = await browser.newPage();
+            console.log("abriendo  browser");
+
         page.on('console', msg => console.log('PAGE LOG:', msg.text()));
 
         hayError = false;
@@ -468,12 +475,15 @@ let page;
 
         }
         else{
+            console.log("nueva noticia");
             await newNotice(page);
+                console.log("esperando imagenes");
+
             await waitForAllImages(page);
             await waitFor(2000);
         }
 
-      
+        console.log("currentHref",currentHref);
         if(currentHref){
             console.log("sigue");
             await agregarHrefJson({href: currentHref});
