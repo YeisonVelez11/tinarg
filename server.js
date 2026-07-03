@@ -389,42 +389,110 @@ async function closeBrowserSafely(browser) {
     }
 }
 
-async function newNotice(page){
+async function newNotice(){
     console.log("fecha actual");
-    // Solo esperar domcontentloaded — networkidle2 nunca se cumple en sitios con muchos ads/trackers
-    // Especialmente en instancias gratuitas de Render con recursos limitados
     try {
-        await page.goto('https://revistaforum.com.br/', { waitUntil: 'domcontentloaded', timeout: 60000 });
-    } catch (navError) {
-        console.log("Primer intento de navegación falló, reintentando...", navError.message);
-        // Reintento: abortar la carga actual y navegar de nuevo con timeout más corto
-        try {
-            await page.goto('https://revistaforum.com.br/', { waitUntil: 'domcontentloaded', timeout: 60000 });
-        } catch (retryError) {
-            console.error("Segundo intento de navegación también falló:", retryError.message);
-            throw retryError;
+        console.log("Obteniendo noticia principal mediante HTTP Axios...");
+        const response = await axios.get('https://revistaforum.com.br/', {
+            headers: {
+                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+                'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+                'Accept-Language': 'pt-BR,pt;q=0.9,en-US;q=0.8,en;q=0.7'
+            },
+            timeout: 30000
+        });
+        const html = response.data;
+        // Regex robusta para capturar el href dentro o justo después de h-heading__main
+        const match = html.match(/class="[^"]*h-heading__main[^"]*"[^>]*>[\s\S]*?href="([^"]+)"/i) || 
+                      html.match(/h-heading__main[\s\S]*?href="([^"]+)"/i);
+        
+        if (match && match[1]) {
+            currentHref = match[1];
+            console.log("currentHref obtenido por Axios:", currentHref);
+            const newUrl = buildUrlWithCurrentDate(currentHref);
+            if (newUrl) {
+                currentHref = newUrl;
+            }
+            console.log("currentHref procesado:", currentHref);
+        } else {
+            console.error("No se pudo extraer la URL principal de Revista Forum desde el HTML");
+            throw new Error("Patrón de noticia principal no encontrado en Revista Forum");
         }
+    } catch (error) {
+        console.error("Error obteniendo noticia principal con Axios:", error.message);
+        throw error;
     }
-    console.log("sigue con la pagina");
-    // Esperar un instante para que el JS inicial del DOM se ejecute
-    await waitFor(1000);
-    currentHref = await page.evaluate(() => {
-        const element = document.querySelector('.h-heading__main a');
-        return element ? element.href : null;
-    });
-    console.log("currentHref obtenido:", currentHref);
-    const newUrl = buildUrlWithCurrentDate(currentHref);
-    if (newUrl) {
-        currentHref = newUrl;
-    }
-    console.log("currentHref procesado:", currentHref);
-
 }
 async function captureScreenshotAndUpload(folderId, auth, banner1Url, bannerLateralUrl, datePast, device) {
 currentHref = null;
 let browser = null;
 let page = null;
-    console.log("iniciando puppeter");
+
+    // 1. OBTENER LA URL PRIMERO SIN ARRANCAR EL NAVEGADOR
+    try {
+        if(datePast){
+            console.log("dias pasados");
+            const formattedDate = momentArgentina(datePast, 'MM/DD/YYYY').format('YYYY/M/DD'); //diferente para el buscador 2024/7/23
+            let jsonData;
+            try {
+                const elements = await obtenerJsonHrefPasados();
+
+                const isDateEqual = (urlString, dateToCompare) => {
+                    // Expresión regular para coincidir con fechas en formato YYYY/MM/DD
+                    const dateRegex = /(\d{4})\/(\d{1,2})\/(\d{1,2})/;
+                    const match = urlString.match(dateRegex);
+                    
+                    if (match) {
+                        // Extraer la fecha de la URL
+                        const extractedDate = `${match[1]}/${match[2].padStart(2, '0')}/${match[3].padStart(2, '0')}`;
+                        // Normalizar la fecha a comparar
+                        const parts = dateToCompare.split('/'); // Asumiendo que dateToCompare está en formato YYYY/MM/DD
+                        const normalizedDateToCompare = `${parts[0]}/${parts[1].padStart(2, '0')}/${parts[2].padStart(2, '0')}`;
+
+                        // Comparar las fechas normalizadas
+                        return extractedDate === normalizedDateToCompare;
+                    } else {
+                        return false;
+                    }
+                };
+
+                if(elements.length > 0){
+                    for(let element of elements){
+                        if(element && isDateEqual(element.href, formattedDate)){
+                            currentHref = (element.href);
+                            console.log("encontrada fecha");
+                            break;
+                        }  
+                    }
+                }
+                if(!currentHref){
+                    await newNotice();
+                }
+        
+                console.log("currentHref",currentHref);
+
+            } catch (err) {
+                console.error('Error al obtener URL:', err);
+            }
+        }
+        else{
+            console.log("nueva noticia");
+            await newNotice();
+        }
+    } catch (e) {
+        console.error("Error en la fase previa a Puppeteer:", e);
+        hayError = true;
+        intentos++;
+        throw e;
+    }
+
+    if (!currentHref) {
+        console.error("No se pudo definir la URL de la noticia. Abortando proceso de captura.");
+        return;
+    }
+
+    // 2. AHORA QUE TENEMOS LA URL, INICIAMOS PUPPETEER
+    console.log("iniciando puppeter para la url:", currentHref);
 
     // Programación defensiva: si hay un browser activo previo, cerrarlo primero
     if (activeBrowser) {
@@ -495,69 +563,9 @@ let page = null;
 
         console.log("aqui");
         console.log("datePast",datePast);
-        if(datePast){
-            console.log("dias pasados");
-            const formattedDate = momentArgentina(datePast, 'MM/DD/YYYY').format('YYYY/M/DD'); //diferente para el buscador 2024/7/23
-            let jsonData;
-            try {
-                // Lee el archivo JSON de manera asíncrona
-                // const data = await fsp.readFile('./public/noticias.json', 'utf8');
-                // Convierte el contenido a un objeto JSON
-                //const elements = JSON.parse(data);
-                    const elements = await obtenerJsonHrefPasados();
+        // La lógica de asignación de URL ya fue resuelta arriba, por lo que directamente procedemos.
 
-                    const isDateEqual = (urlString, dateToCompare) => {
-                        // Expresión regular para coincidir con fechas en formato YYYY/MM/DD
-                        const dateRegex = /(\d{4})\/(\d{1,2})\/(\d{1,2})/;
-                        const match = urlString.match(dateRegex);
-                        
-                        if (match) {
-                    
-                            // Extraer la fecha de la URL
-                            const extractedDate = `${match[1]}/${match[2].padStart(2, '0')}/${match[3].padStart(2, '0')}`;
-                    
-                            // Normalizar la fecha a comparar
-                            const parts = dateToCompare.split('/'); // Asumiendo que dateToCompare está en formato YYYY/MM/DD
-                            const normalizedDateToCompare = `${parts[0]}/${parts[1].padStart(2, '0')}/${parts[2].padStart(2, '0')}`;
-    
-                            // Comparar las fechas normalizadas
-                            return extractedDate === normalizedDateToCompare;
-                        } else {
-                            return false;
-                        }
-                    };
-    
-    
-    
-                    
-                    if(elements.length > 0){
-                        for(let element of elements){
-                            if(element && isDateEqual(element.href, formattedDate)){
-                                currentHref = (element.href);
-                                console.log("encontrada fecha");
-                                break;
-                            }  
-                        }
-                    }
-                    if(!currentHref){
-                        await newNotice(page);
-                    }
-            
-                console.log("currentHref",currentHref);
-
-
-            } catch (err) {
-                console.error('Error al leer el archivo:', err);
-            }
-
-
-        }
-        else{
-            console.log("nueva noticia");
-            await newNotice(page);
-        }
-
-        console.log("currentHref",currentHref);
+        console.log("currentHref final para captura:",currentHref);
         if(currentHref){
             console.log("sigue");
             await agregarHrefJson({href: currentHref});
