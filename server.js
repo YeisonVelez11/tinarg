@@ -406,20 +406,18 @@ async function newNotice(page){
         }
     }
     console.log("sigue con la pagina");
-    // Esperar un poco para que el DOM se estabilice y las imágenes carguen
-    await waitFor(5000);
-    await waitForAllImages(page);
-    await waitFor(2000);
+    // Esperar un instante para que el JS inicial del DOM se ejecute
+    await waitFor(1000);
     currentHref = await page.evaluate(() => {
         const element = document.querySelector('.h-heading__main a');
         return element ? element.href : null;
     });
-    console.log("currentHref",currentHref);
+    console.log("currentHref obtenido:", currentHref);
     const newUrl = buildUrlWithCurrentDate(currentHref);
     if (newUrl) {
         currentHref = newUrl;
     }
-    console.log("currentHref",currentHref);
+    console.log("currentHref procesado:", currentHref);
 
 }
 async function captureScreenshotAndUpload(folderId, auth, banner1Url, bannerLateralUrl, datePast, device) {
@@ -452,7 +450,7 @@ let page = null;
             ],
             headless: 'new',
             timeout: 60000, // 60s para que Chrome arranque (default es 30s)
-            protocolTimeout: 60000,
+            protocolTimeout: 180000, // Aumentado a 180s para evitar timeouts del protocolo CDP en servidores lentos
             executablePath:
               process.env.NODE_ENV === "production"
                 ? process.env.PUPPETEER_EXECUTABLE_PATH
@@ -543,8 +541,6 @@ let page = null;
                     }
                     if(!currentHref){
                         await newNotice(page);
-                        await waitForAllImages(page);
-                        await waitFor(2000);
                     }
             
                 console.log("currentHref",currentHref);
@@ -559,10 +555,6 @@ let page = null;
         else{
             console.log("nueva noticia");
             await newNotice(page);
-                console.log("esperando imagenes");
-
-            await waitForAllImages(page);
-            await waitFor(2000);
         }
 
         console.log("currentHref",currentHref);
