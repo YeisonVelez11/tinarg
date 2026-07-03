@@ -307,7 +307,7 @@ async function agregarHrefJson(hrefJson) {
         const hrefExistente = contenidoActual.some(item => item.href === hrefJson.href);
 
         if (hrefExistente) {
-            console.log(`El href "${hrefExistente.href}" ya existe. No se guardará nada.`);
+            console.log(`El href "${hrefJson.href}" ya existe. No se guardará nada.`);
             return; // Salir de la función si el nombre no es único
         }
 
@@ -516,7 +516,7 @@ let page = null;
               "--no-first-run",
               "--js-flags=--max-old-space-size=256",
             ],
-            headless: 'new',
+            headless: true,
             timeout: 60000, // 60s para que Chrome arranque (default es 30s)
             protocolTimeout: 180000, // Aumentado a 180s para evitar timeouts del protocolo CDP en servidores lentos
             executablePath:
@@ -532,30 +532,8 @@ let page = null;
         page = await browser.newPage();
             console.log("abriendo  browser");
 
-        // Bloquear requests innecesarios (ads, trackers, analytics) para ahorrar recursos en Render
-        await page.setRequestInterception(true);
-        const blockedDomains = [
-            'googlesyndication.com', 'googleadservices.com', 'google-analytics.com',
-            'googletagmanager.com', 'doubleclick.net', 'facebook.net', 'facebook.com',
-            'taboola.com', 'outbrain.com', 'ampproject.org', 'cdn.ampproject.org',
-            'adnxs.com', 'adsrvr.org', 'criteo.com', 'scorecardresearch.com',
-            'chartbeat.com', 'hotjar.com', 'onesignal.com', 'pushwoosh.com'
-        ];
-        page.on('request', (req) => {
-            const url = req.url();
-            const resourceType = req.resourceType();
-            // Bloquear tipos de recursos pesados que no necesitamos para el scraping inicial
-            if (['media', 'font', 'websocket'].includes(resourceType)) {
-                req.abort();
-                return;
-            }
-            // Bloquear dominios de ads/trackers
-            if (blockedDomains.some(domain => url.includes(domain))) {
-                req.abort();
-                return;
-            }
-            req.continue();
-        });
+        // No activamos setRequestInterception ya que puede causar loops infinitos de red en los ads de la página
+        // y consumir toda la CPU/RAM en Render.
 
         page.on('console', msg => console.log('PAGE LOG:', msg.text()));
 
