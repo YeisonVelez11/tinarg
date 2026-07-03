@@ -364,7 +364,31 @@ async function obtenerJsonHrefPasados() {
 let intentos = 0;
 let hayError = false;
 let currentHref;
-let page;
+let activeBrowser = null; // Singleton para rastrear el browser activo
+
+// Función defensiva para cerrar el browser de forma segura
+async function closeBrowserSafely(browser) {
+    if (!browser) return;
+    try {
+        const pages = await browser.pages();
+        await Promise.all(pages.map(p => p.close().catch(err => console.log('Error cerrando página:', err.message))));
+        await browser.close();
+        console.log('Browser cerrado correctamente');
+    } catch (closeError) {
+        console.warn('Error al cerrar browser con close():', closeError.message);
+        // Forzar cierre del proceso de Chrome
+        try {
+            const browserProcess = browser.process && browser.process();
+            if (browserProcess) {
+                browserProcess.kill('SIGKILL');
+                console.log('Proceso del browser forzado a cerrar con SIGKILL');
+            }
+        } catch (killError) {
+            console.warn('Error al forzar cierre del browser:', killError.message);
+        }
+    }
+}
+
 async function newNotice(page){
     console.log("fecha actual");
     // Solo esperar domcontentloaded — networkidle2 nunca se cumple en sitios con muchos ads/trackers
@@ -400,15 +424,21 @@ async function newNotice(page){
 }
 async function captureScreenshotAndUpload(folderId, auth, banner1Url, bannerLateralUrl, datePast, device) {
 currentHref = null;
-let browser;
-let page;
+let browser = null;
+let page = null;
     console.log("iniciando puppeter");
+
+    // Programación defensiva: si hay un browser activo previo, cerrarlo primero
+    if (activeBrowser) {
+        console.warn('Se detectó un browser activo previo. Cerrándolo antes de abrir uno nuevo...');
+        await closeBrowserSafely(activeBrowser);
+        activeBrowser = null;
+    }
     try {
         browser = await puppeteer.launch({
             args: [
               "--disable-setuid-sandbox",
               "--no-sandbox",
-              "--single-process",
               "--no-zygote",
               "--disable-gpu",
               "--disable-dev-shm-usage",
@@ -420,14 +450,17 @@ let page;
               "--no-first-run",
               "--js-flags=--max-old-space-size=256",
             ],
-            headless: true,
+            headless: 'new',
+            timeout: 60000, // 60s para que Chrome arranque (default es 30s)
+            protocolTimeout: 60000,
             executablePath:
               process.env.NODE_ENV === "production"
                 ? process.env.PUPPETEER_EXECUTABLE_PATH
                 : puppeteer.executablePath(),
           });
 
-
+        // Registrar el browser activo para rastreo defensivo
+        activeBrowser = browser;
               console.log("paso puppeter");
 
         page = await browser.newPage();
@@ -752,33 +785,32 @@ let page;
             device,
             currentHref,
         });
-        const screenshotBuffer = await page.screenshot();
-        const moment_date = momentArgentina(new Date(datePast ? datePast : new Date()),'DD_MM_YYYY').format('DD/MM/YYYY');
-        const hora = momentArgentina(new Date(),'hh_mm_ss').format('hh_mm_ss');
-        const finalFileName = `${moment_date}_${hora}_${device}_.png`;
-        await uploadBufferToDrive(auth, idCarpetaRaiz, `${finalFileName}`, screenshotBuffer, 'image/png');
+        // Solo intentar screenshot si page existe (puede no existir si browser no arrancó)
+        if (page) {
+            try {
+                const screenshotBuffer = await page.screenshot();
+                const moment_date = momentArgentina(new Date(datePast ? datePast : new Date()),'DD_MM_YYYY').format('DD/MM/YYYY');
+                const hora = momentArgentina(new Date(),'hh_mm_ss').format('hh_mm_ss');
+                const finalFileName = `${moment_date}_${hora}_${device}_.png`;
+                await uploadBufferToDrive(auth, idCarpetaRaiz, `${finalFileName}`, screenshotBuffer, 'image/png');
+            } catch (screenshotError) {
+                console.error('No se pudo tomar screenshot de error:', screenshotError.message);
+            }
+        } else {
+            console.error('No se pudo tomar screenshot: el browser no logró arrancar');
+        }
 
         hayError = true;
         intentos++;
     }
     finally {
-        if (browser) {
-            try {
-                const pages = await browser.pages();
-                await Promise.all(pages.map(p => p.close().catch(err => console.log('Error cerrando página:', err.message))));
-                await browser.close();
-            } catch (closeError) {
-                console.warn('Error al cerrar browser:', closeError.message);
-                try {
-                    const browserProcess = browser.process && browser.process();
-                    if (browserProcess) {
-                        browserProcess.kill('SIGKILL');
-                    }
-                } catch (killError) {
-                    console.warn('Error al forzar cierre del browser:', killError.message);
-                }
-            }
-        }
+        // SIEMPRE cerrar el browser y limpiar las referencias
+        await closeBrowserSafely(browser);
+        browser = null;
+        page = null;
+        activeBrowser = null;
+
+        // Reintentar DESPUÉS de que el browser esté completamente cerrado
         if(hayError && intentos <= 3){
             if(intentos === 3){
                 intentos = 0;
