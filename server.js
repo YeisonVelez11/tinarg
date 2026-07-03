@@ -367,8 +367,23 @@ let currentHref;
 let page;
 async function newNotice(page){
     console.log("fecha actual");
-    await page.goto('https://revistaforum.com.br/', { waitUntil: ['domcontentloaded', 'networkidle2'], timeout: 120000 });
-   console.log("sigue con la pagina");
+    // Solo esperar domcontentloaded — networkidle2 nunca se cumple en sitios con muchos ads/trackers
+    // Especialmente en instancias gratuitas de Render con recursos limitados
+    try {
+        await page.goto('https://revistaforum.com.br/', { waitUntil: 'domcontentloaded', timeout: 60000 });
+    } catch (navError) {
+        console.log("Primer intento de navegación falló, reintentando...", navError.message);
+        // Reintento: abortar la carga actual y navegar de nuevo con timeout más corto
+        try {
+            await page.goto('https://revistaforum.com.br/', { waitUntil: 'domcontentloaded', timeout: 60000 });
+        } catch (retryError) {
+            console.error("Segundo intento de navegación también falló:", retryError.message);
+            throw retryError;
+        }
+    }
+    console.log("sigue con la pagina");
+    // Esperar un poco para que el DOM se estabilice y las imágenes carguen
+    await waitFor(5000);
     await waitForAllImages(page);
     await waitFor(2000);
     currentHref = await page.evaluate(() => {
@@ -380,7 +395,7 @@ async function newNotice(page){
     if (newUrl) {
         currentHref = newUrl;
     }
-        console.log("currentHref",currentHref);
+    console.log("currentHref",currentHref);
 
 }
 async function captureScreenshotAndUpload(folderId, auth, banner1Url, bannerLateralUrl, datePast, device) {
@@ -395,6 +410,15 @@ let page;
               "--no-sandbox",
               "--single-process",
               "--no-zygote",
+              "--disable-gpu",
+              "--disable-dev-shm-usage",
+              "--disable-accelerated-2d-canvas",
+              "--disable-background-networking",
+              "--disable-default-apps",
+              "--disable-extensions",
+              "--disable-sync",
+              "--no-first-run",
+              "--js-flags=--max-old-space-size=256",
             ],
             headless: true,
             executablePath:
@@ -408,6 +432,31 @@ let page;
 
         page = await browser.newPage();
             console.log("abriendo  browser");
+
+        // Bloquear requests innecesarios (ads, trackers, analytics) para ahorrar recursos en Render
+        await page.setRequestInterception(true);
+        const blockedDomains = [
+            'googlesyndication.com', 'googleadservices.com', 'google-analytics.com',
+            'googletagmanager.com', 'doubleclick.net', 'facebook.net', 'facebook.com',
+            'taboola.com', 'outbrain.com', 'ampproject.org', 'cdn.ampproject.org',
+            'adnxs.com', 'adsrvr.org', 'criteo.com', 'scorecardresearch.com',
+            'chartbeat.com', 'hotjar.com', 'onesignal.com', 'pushwoosh.com'
+        ];
+        page.on('request', (req) => {
+            const url = req.url();
+            const resourceType = req.resourceType();
+            // Bloquear tipos de recursos pesados que no necesitamos para el scraping inicial
+            if (['media', 'font', 'websocket'].includes(resourceType)) {
+                req.abort();
+                return;
+            }
+            // Bloquear dominios de ads/trackers
+            if (blockedDomains.some(domain => url.includes(domain))) {
+                req.abort();
+                return;
+            }
+            req.continue();
+        });
 
         page.on('console', msg => console.log('PAGE LOG:', msg.text()));
 
